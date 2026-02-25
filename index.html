@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>KiichiBrainrot</title>
+<title>kiichibrainrot</title>
 <style>
 /* 既存 walker 用 */
 .walker{
@@ -422,7 +422,6 @@ const db = firebase.database();
 </script>
 
 <div id="ui">
-  <h3>📋 ゲーム情報</h3>
   <div>キャッシュ<span id="money">0</span></div>
   <div>リバース<span id="level">1</span></div>
   <div>容量<span id="cap">10</span></div>
@@ -510,7 +509,7 @@ const rarities = [
   {name:"LEGENDARY", color:"gold", rate:80000, chance:7},
   {name:"MYTHIC", color:"orange", rate:200000, chance:3},
   {name:"GOD", color:"rainbow", rate:1000000, chance:0.8},
-  {name:"SECRET", color:"black", rate:0, chance:0.1}
+  {name:"SECRET", color:"black", rate:0, chance:0.2}
 ];
 
 const attributes = [
@@ -535,20 +534,16 @@ const mutations = [
   {name:"End", bonus:3, icon:"🌌"},
   {name:"Enchant", bonus:3, icon:"✨"},
   {name:"Inmu", bonus:4, icon:"☠"}
-  {name:"GRAX", bonus:5 icon:"🌙"}
 ];
 
 const secretCharacters = [
   {character:"Piccione Macchina", rate:500000},
   {character:"Pakrahmatmamat", rate:600000},
-  {character:"Anpali Babel", rate:800000},
   {character:"Orcalero Orcala", rate:1000000},
-  {character:"Frogino Assassino" rate:1200000},
   {character:"Pot Hotspot", rate:2000000},
   {character:"Nooo My Hotspot", rate:2500000},
   {character:"Garamaramadungdung", rate:3000000},
   {character:"Il Sacro Cabrospaghetti", rate:4000000},
-  {character:"Onanini Ananini", rate:4545000},
   {character:"La Grande Combinacion", rate:5000000},
   {character:"Yess My Hotspot", rate:5500000},
   {character:"67", rate:6700000},
@@ -559,7 +554,6 @@ const secretCharacters = [
   {character:"Lirili Ralilu", rate:17000000},
   {character:"La Esok Sekolah", rate:20000000},
   {character:"Chimpanzini Kingini", rate:25000000},
-  {character:"Ommcoritos Elsisteras", rate:27000000},
   {character:"Strawberry Elephant", rate:30000000},
   {character:"Klombo", rate:32000000},
   {character:"Gorgonzilla", rate:57000000},
@@ -571,7 +565,6 @@ const secretCharacters = [
   {character:"Tiramisubmarini", rate:90000000},
   {character:"Garbagzilla", rate:100000000},
   {character:"Cannone Maledettone", rate:115000000},
-  {character:"Torno Świetne", rate:71000000},
   {character:"SKIBIDI TOILET", rate:350000000},
   {character:"YAJUU SENPAI", rate:810000000}
 ];
@@ -883,7 +876,7 @@ function fuse(){
 
 function upgradeBase(){
   const cost=Math.floor(50000*Math.pow(4,baseLevel-1));
-  if(money>=cost){ money=0; baseLevel++; capacity+=2; incomeMultiplier+=0.5; ensureBaseSlots(); renderBase(); updateUI(); showToast("📈 リバースレベルが上がりました！", "success"); }
+  if(money>=cost){ money=0; baseLevel++; capacity+=1; incomeMultiplier+=0.5; ensureBaseSlots(); renderBase(); updateUI(); showToast("📈 リバースレベルが上がりました！", "success"); }
   else { showNotification(`💰 ${format(cost - money)} 足りません`, "error", 2000); }
 }
 
