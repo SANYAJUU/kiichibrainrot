@@ -139,7 +139,7 @@ button{cursor:pointer;}
   top:20px;
   right:20px;
   width:380px;
-  max-height:650px;
+  max-height:calc(100vh - 100px);
   background:#1e1e1e;
   color:white;
   padding:15px;
@@ -149,11 +149,14 @@ button{cursor:pointer;}
   z-index:3000;
   display:none;
   border:2px solid #4CAF50;
+  display:flex;
+  flex-direction:column;
 }
 
 #tradePanel h3{
   margin-top:0;
   color:#4CAF50;
+  margin-bottom:10px;
 }
 
 #tradePanel input{
@@ -182,7 +185,7 @@ button{cursor:pointer;}
 }
 
 .tradeList{
-  max-height:300px;
+  max-height:250px;
   overflow-y:auto;
   border:1px solid #555;
   border-radius:5px;
@@ -206,6 +209,20 @@ button{cursor:pointer;}
 .tradeOffer.waiting{
   border-color:#2196F3;
   background:#002a3a;
+}
+
+#tradePanelContent{
+  flex:1;
+  overflow-y:auto;
+  margin-bottom:10px;
+}
+
+#tradePanelFooter{
+  position:sticky;
+  bottom:0;
+  background:#1e1e1e;
+  padding-top:10px;
+  border-top:1px solid #555;
 }
 
 #fuseArea{
@@ -290,11 +307,14 @@ button{cursor:pointer;}
   background:linear-gradient(45deg,gold,orange);
   color:black;
   font-weight:bold;
-  padding:12px 20px;
+  padding:15px 20px;
   border-radius:10px;
   box-shadow:0 0 15px gold;
   z-index:2000;
   animation:pulse 1s infinite alternate;
+  text-align:center;
+  font-size:14px;
+  line-height:1.4;
 }
 
 @keyframes pulse{
@@ -438,6 +458,7 @@ const db = firebase.database();
   <div>倍率 x<span id="multiplier">1</span></div>
   <button id="upgradeBtn" onclick="upgradeBase()" style="width:100%; margin-top:8px;">リバース</button>
   <button onclick="showResetDialog()" style="background:#d32f2f; width:100%; margin-top:3px;">リセット</button>
+  <button onclick="cleanupOldTrades()" style="background:#ff9800; width:100%; margin-top:3px;">古い交換を削除</button>
   <hr>
   <div id="codeBox">
     <input id="codeInput" placeholder="コード入力">
@@ -449,7 +470,7 @@ const db = firebase.database();
   <h3 style="color:gold;">👑 管理者パネル</h3>
   <button onclick="startAdminEvent()" style="background:#ff9800;">イベント開始</button>
   <button onclick="stopAdminEvent()" style="background:#d32f2f;">イベント終了</button>
-  <div id="eventStatus" style="margin-top:10px;color:lime;">イベント停止中</div>
+  <div id="eventStatus" style="margin-top:10px;color:lime;">イ��ント停止中</div>
 </div>
 
 <div id="carpet"></div>
@@ -460,25 +481,29 @@ const db = firebase.database();
 
 <div id="tradePanel">
   <h3>🌍 キャラ交換</h3>
-  <div style="display:flex; gap:5px; margin-bottom:10px;">
-    <button onclick="switchTradeTab('offer')" id="tabOffer" style="flex:1; background:#4CAF50;">📤 出品</button>
-    <button onclick="switchTradeTab('find')" id="tabFind" style="flex:1; background:#666;">🔍 募集</button>
+  <div id="tradePanelContent">
+    <div style="display:flex; gap:5px; margin-bottom:10px;">
+      <button onclick="switchTradeTab('offer')" id="tabOffer" style="flex:1; background:#4CAF50;">📤 出品</button>
+      <button onclick="switchTradeTab('find')" id="tabFind" style="flex:1; background:#666;">🔍 募集</button>
+    </div>
+    <div id="offerTab">
+      <h4>自分のキャラから選択</h4>
+      <div class="tradeList" id="myCharList"></div>
+      <label>募集説明:</label>
+      <input type="text" id="tradeMessage" placeholder="例：シークレット求む！">
+      <button onclick="postTrade()" style="width:100%; background:#4CAF50;">📤 出品する</button>
+      <hr>
+      <h4>交換申請</h4>
+      <div class="tradeList" id="incomingRequests"></div>
+    </div>
+    <div id="findTab" style="display:none;">
+      <h4>募集中の交換</h4>
+      <div class="tradeList" id="publicTradesList"></div>
+    </div>
   </div>
-  <div id="offerTab">
-    <h4>自分のキャラから選択</h4>
-    <div class="tradeList" id="myCharList"></div>
-    <label>募集説明:</label>
-    <input type="text" id="tradeMessage" placeholder="例：シークレット求む！">
-    <button onclick="postTrade()" style="width:100%; background:#4CAF50;">📤 出品する</button>
-    <hr>
-    <h4>交換申請</h4>
-    <div class="tradeList" id="incomingRequests"></div>
+  <div id="tradePanelFooter">
+    <button onclick="toggleTradePanel()" style="width:100%;">✕ 閉じる</button>
   </div>
-  <div id="findTab" style="display:none;">
-    <h4>募集中の交換</h4>
-    <div class="tradeList" id="publicTradesList"></div>
-  </div>
-  <button onclick="toggleTradePanel()" style="width:100%; margin-top:10px;">✕ 閉じる</button>
 </div>
 
 <div id="fuseArea">
@@ -489,7 +514,7 @@ const db = firebase.database();
   <button onclick="toggleFusePanel()" style="width:100%; margin-top:5px; background:#d32f2f;">✕ 閉じる</button>
 </div>
 
-<div id="adminEventBanner">👑 管理者イベント発動中</div>
+<div id="adminEventBanner">👑 管理者イベント発動中<br><span id="eventCountdown"></span></div>
 <div id="notificationPanel"></div>
 <div id="dialogBackdrop"></div>
 <div id="dialogBox">
@@ -654,8 +679,14 @@ function updateUI(){
 function toggleTradePanel(){
   const panel = document.getElementById("tradePanel");
   const fuseArea = document.getElementById("fuseArea");
-  if(panel.style.display === "block"){ panel.style.display = "none"; }
-  else { panel.style.display = "block"; fuseArea.style.display = "none"; renderTradePanel(); }
+  if(panel.style.display === "none" || panel.style.display === ""){ 
+    panel.style.display = "flex"; 
+    fuseArea.style.display = "none"; 
+    renderTradePanel(); 
+  }
+  else { 
+    panel.style.display = "none"; 
+  }
 }
 
 function toggleFusePanel(){
@@ -680,6 +711,24 @@ function showResetDialog(){
       money=0; baseLevel=1; capacity=10; incomeMultiplier=1; base=[]; fuseList=[];
       ensureBaseSlots(); renderBase(); renderFuse(); updateUI();
       showToast("✅ ゲームをリセットしました", "success");
+    }
+  });
+}
+
+function cleanupOldTrades(){
+  showDialog("古い交換を削除", "status: 'completed'の古い交換記録を削除します。よろしいですか？", (confirmed) => {
+    if(confirmed){
+      db.ref("publicTrades").once("value").then(snap=>{
+        const trades = snap.val();
+        if(!trades) return;
+        Object.entries(trades).forEach(([id, trade])=>{
+          if(trade.status === "completed"){
+            db.ref("publicTrades/" + id).remove();
+          }
+        });
+        showToast("✅ 完了済みの交換を削除しました", "success");
+        renderIncomingRequests();
+      });
     }
   });
 }
@@ -1175,6 +1224,22 @@ db.ref("globalEvent").on("value", snapshot=>{
   const data = snapshot.val();
   const eventStatus = document.getElementById("eventStatus");
   const banner = document.getElementById("adminEventBanner");
+  const countdown = document.getElementById("eventCountdown");
+  
+  if(data && data.active){
+    adminEventActive = true;
+    globalLuckMultiplier = data.luck;
+    banner.style.display="block";
+    
+    clearInterval(eventCountdownInterval);
+    eventCountdownInterval = setInterval(()=>{
+      const now = Date.now();
+      const timeLeft = data.endTime - now;
+      db.ref("globalEvent").on("value", snapshot=>{
+  const data = snapshot.val();
+  const eventStatus = document.getElementById("eventStatus");
+  const banner = document.getElementById("adminEventBanner");
+  const countdown = document.getElementById("eventCountdown");
   
   if(data && data.active){
     adminEventActive = true;
@@ -1197,7 +1262,8 @@ db.ref("globalEvent").on("value", snapshot=>{
       } else {
         const minutes = Math.floor(timeLeft / 60000);
         const seconds = Math.floor((timeLeft % 60000) / 1000);
-        eventStatus.innerHTML = `🔥 イベント開催中<br>⏰ ${minutes}分${seconds}秒`;
+        countdown.innerHTML = `⏰ ${minutes}分${seconds}秒`;
+        eventStatus.innerHTML = `🔥 イベント開催中`;
       }
     }, 1000);
     
