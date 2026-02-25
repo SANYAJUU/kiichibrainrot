@@ -1132,8 +1132,6 @@ renderBase();
 startSpawn();
 updateUI();
 
-let eventCountdownInterval = null;
-
 db.ref("globalEvent").on("value", snapshot=>{
   const data = snapshot.val();
   const eventStatus = document.getElementById("eventStatus");
@@ -1153,7 +1151,7 @@ db.ref("globalEvent").on("value", snapshot=>{
         adminEventActive = false;
         globalLuckMultiplier = 1;
         banner.style.display="none";
-        eventStatus.innerText = "イ���ント停止中";
+        eventStatus.innerText = "イベント停止中";
         clearInterval(eventCountdownInterval);
         db.ref("globalEvent").set({active:false});
         showToast("⏰ 管理者イベントが終了しました", "info");
