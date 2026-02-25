@@ -1588,6 +1588,222 @@ db.ref("globalEvent").on("value", snapshot=>{
     document.getElementById("eventStatus").innerText="イベント停止中";
   }
 });
+/* ============================
+   🔄 交換掲示板 完全修正版
+============================ */
+
+// パネル開閉（確実動作版）
+function toggleTrade(){
+  const panel = document.getElementById("tradePanel");
+  panel.style.display =
+    panel.style.display === "block" ? "none" : "block";
+}
+
+function closeTrade(){
+  document.getElementById("tradePanel").style.display = "none";
+}
+
+// ===== 投稿UI描画 =====
+function renderCreateTrade(){
+
+  const box = document.getElementById("createTradeBox");
+  box.innerHTML = "";
+
+  let selectedIndex = null;
+
+  // メッセージ入力
+  const msgInput = document.createElement("input");
+  msgInput.placeholder = "例：SECRETと交換したい！";
+  msgInput.style.width = "100%";
+  msgInput.style.marginBottom = "8px";
+
+  box.appendChild(msgInput);
+
+  // 自分のキャラ一覧
+  base.forEach((char,index)=>{
+    if(!char) return;
+
+    const div = document.createElement("div");
+    div.style.border="1px solid #555";
+    div.style.padding="6px";
+    div.style.marginBottom="4px";
+    div.style.cursor="pointer";
+
+    const name = char.name==="SECRET" ? char.character : char.name;
+
+    div.innerHTML = `
+      <div>📦 ${name}</div>
+      <div>💰 ${format(char.rate)}/s</div>
+    `;
+
+    div.onclick = ()=>{
+      selectedIndex = index;
+      renderCreateTrade();
+    };
+
+    if(index===selectedIndex){
+      div.style.background="orange";
+    }
+
+    box.appendChild(div);
+  });
+
+  // 投稿ボタン
+  const btn = document.createElement("button");
+  btn.textContent="📢 公開する";
+  btn.style.width="100%";
+  btn.style.marginTop="6px";
+
+  btn.onclick = ()=>{
+    if(selectedIndex===null){
+      alert("キャラを選択してください");
+      return;
+    }
+
+    db.ref("tradeBoard").push({
+      owner: playerId,
+      charData: base[selectedIndex], // ★ indexじゃなくデータ保存
+      message: msgInput.value || "",
+      status:"open",
+      timestamp:Date.now()
+    });
+
+    alert("掲示板に投稿しました！");
+  };
+
+  box.appendChild(btn);
+}
+
+// ===== 掲示板表示 =====
+db.ref("tradeBoard").on("value",snap=>{
+
+  const data = snap.val();
+  const container = document.getElementById("publicTrades");
+  container.innerHTML="";
+
+  if(!data) return;
+
+  Object.entries(data).forEach(([id,trade])=>{
+
+    if(trade.status!=="open") return;
+
+    const char = trade.charData;
+    const charName = char.name==="SECRET" ? char.character : char.name;
+
+    const div = document.createElement("div");
+    div.style.border="1px solid #888";
+    div.style.padding="8px";
+    div.style.marginBottom="8px";
+    div.style.background="#222";
+
+    div.innerHTML = `
+      <div><b>${trade.owner}</b></div>
+      <div>📦 提供：${charName}</div>
+      <div>💬 ${trade.message||"メッセージなし"}</div>
+    `;
+
+    // 自分の投稿にはボタン出さない
+    if(trade.owner !== playerId){
+
+      const btn = document.createElement("button");
+      btn.textContent="この人と交換";
+      btn.style.width="100%";
+      btn.style.marginTop="6px";
+
+      btn.onclick = ()=>{
+        applyTradeUI(id, trade);
+      };
+
+      div.appendChild(btn);
+    }
+
+    container.appendChild(div);
+  });
+
+});
+
+// ===== 交換申請UI =====
+function applyTradeUI(tradeId, trade){
+
+  let selectedIndex = null;
+
+  const panel = document.getElementById("createTradeBox");
+  panel.innerHTML = "<h4>自分の出すキャラを選択</h4>";
+
+  base.forEach((char,index)=>{
+    if(!char) return;
+
+    const div = document.createElement("div");
+    div.style.border="1px solid #555";
+    div.style.padding="6px";
+    div.style.marginBottom="4px";
+    div.style.cursor="pointer";
+
+    const name = char.name==="SECRET" ? char.character : char.name;
+
+    div.innerHTML = `
+      <div>📦 ${name}</div>
+      <div>💰 ${format(char.rate)}/s</div>
+    `;
+
+    div.onclick = ()=>{
+      selectedIndex = index;
+      applyTradeConfirm();
+    };
+
+    panel.appendChild(div);
+  });
+
+  function applyTradeConfirm(){
+    if(selectedIndex===null) return;
+
+    db.ref("tradeBoard/"+tradeId).update({
+      applicant: playerId,
+      applicantCharData: base[selectedIndex],
+      status:"pending"
+    });
+
+    alert("交換申請しました！");
+  }
+}
+
+// ===== 承認処理 =====
+db.ref("tradeBoard").on("child_changed",snap=>{
+
+  const trade = snap.val();
+  const tradeId = snap.key;
+
+  if(trade.status==="pending" && trade.owner===playerId){
+
+    const accept = confirm("交換申請が来ました！承認しますか？");
+
+    if(accept){
+
+      const ownerIndex = base.findIndex(c=>JSON.stringify(c)===JSON.stringify(trade.charData));
+      const applicantChar = trade.applicantCharData;
+
+      if(ownerIndex===-1) return;
+
+      base[ownerIndex] = applicantChar;
+
+      db.ref("tradeBoard/"+tradeId).update({
+        status:"completed"
+      });
+
+      renderBase();
+      alert("交換完了！");
+    }else{
+      db.ref("tradeBoard/"+tradeId).update({
+        status:"open",
+        applicant:null,
+        applicantCharData:null
+      });
+    }
+  }
+});
+
+// 初期描画
+renderCreateTrade();
 </script>
 <div id="adminEventBanner" style="
 display:none;
