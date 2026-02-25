@@ -500,6 +500,7 @@ if(!playerId){
 let adminEventActive = false, globalLuckMultiplier = 1, isAdmin = false;
 let usedCodes = JSON.parse(localStorage.getItem("usedCodes")||"[]");
 let selectedMyChar = null, currentTradeTab = "offer", dialogCallback = null;
+let eventCountdownInterval = null;
 
 const rarities = [
   {name:"COMMON", color:"#777", rate:1000, chance:49},
@@ -775,8 +776,11 @@ function renderFuse(){
   const fuseDiv = document.getElementById("fuseSlots");
   fuseDiv.innerHTML = "";
   let total = 0;
+  let totalBase = 0;
+  
   fuseList.forEach((c)=>{
     total += c.rate;
+    totalBase += (c.baseRate || c.rate);
     const div = document.createElement("div");
     div.className = "char";
     div.style.background = c.attribute ? c.attribute.color : "#444";
@@ -800,7 +804,9 @@ function renderFuse(){
     div.onclick = ()=>{ const emptyIndex = base.findIndex(s=>s===null); if(emptyIndex === -1) return; const index = fuseList.indexOf(c); if(index !== -1) fuseList.splice(index,1); base[emptyIndex] = c; renderBase(); renderFuse(); };
     fuseDiv.appendChild(div);
   });
-  document.getElementById("fuseTotal").innerText = format(total);
+  
+  document.getElementById("fuseTotal").innerText = format(totalBase);
+
   if(fuseList.length > 0){
     const totalBaseRate = fuseList.reduce((sum,c)=>sum+(c.baseRate||c.rate),0);
     const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
@@ -819,7 +825,6 @@ function fuse(){
   if(fuseList.length !== 5) { showNotification(`⚠️ 5体必要です！（現在 ${fuseList.length}/5）`, "error", 2000); return; }
   const used = fuseList.splice(0,5);
   
-  // ★ baseRate（属性・変異なしの稼ぎ額）の合計で判定
   const totalBaseRate = used.reduce((sum,c)=>sum + (c.baseRate || c.rate),0);
   
   const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
@@ -844,7 +849,6 @@ function fuse(){
   newChar.attribute = firstChar.attribute;
   newChar.mutations = firstChar.mutations ? [...firstChar.mutations] : [];
   
-  // ★ 新しいキャラの rate を計算（baseRate に属性と変異の倍率を適用）
   let totalMultiplier = newChar.attribute ? newChar.attribute.multiplier : 1;
   newChar.mutations.forEach(m => totalMultiplier += m.bonus);
   newChar.rate = Math.floor(newChar.baseRate * totalMultiplier);
@@ -854,6 +858,7 @@ function fuse(){
   renderBase(); renderFuse();
   showToast(`✨ ${getCharName(newChar)} が生成されました！`, "success");
 }
+
 function upgradeBase(){
   const cost=Math.floor(50000*Math.pow(4,baseLevel-1));
   if(money>=cost){ money=0; baseLevel++; capacity+=1; incomeMultiplier+=0.5; ensureBaseSlots(); renderBase(); updateUI(); showToast("📈 リバースレベルが上がりました！", "success"); }
@@ -862,7 +867,8 @@ function upgradeBase(){
 
 function startAdminEvent(){
   if(!isAdmin) return;
-  db.ref("globalEvent").set({active: true, luck: 67, startTime: Date.now()});
+  const endTime = Date.now() + (20 * 60 * 1000);
+  db.ref("globalEvent").set({active: true, luck: 67, startTime: Date.now(), endTime: endTime});
   showToast("👑 イベントを開始しました", "success");
 }
 
@@ -1126,18 +1132,44 @@ renderBase();
 startSpawn();
 updateUI();
 
+let eventCountdownInterval = null;
+
 db.ref("globalEvent").on("value", snapshot=>{
   const data = snapshot.val();
+  const eventStatus = document.getElementById("eventStatus");
+  const banner = document.getElementById("adminEventBanner");
+  
   if(data && data.active){
     adminEventActive = true;
     globalLuckMultiplier = data.luck;
-    document.getElementById("adminEventBanner").style.display="block";
-    document.getElementById("eventStatus").innerText="🔥 イベント開催中";
+    banner.style.display="block";
+    
+    clearInterval(eventCountdownInterval);
+    eventCountdownInterval = setInterval(()=>{
+      const now = Date.now();
+      const timeLeft = data.endTime - now;
+      
+      if(timeLeft <= 0){
+        adminEventActive = false;
+        globalLuckMultiplier = 1;
+        banner.style.display="none";
+        eventStatus.innerText = "イ���ント停止中";
+        clearInterval(eventCountdownInterval);
+        db.ref("globalEvent").set({active:false});
+        showToast("⏰ 管理者イベントが終了しました", "info");
+      } else {
+        const minutes = Math.floor(timeLeft / 60000);
+        const seconds = Math.floor((timeLeft % 60000) / 1000);
+        eventStatus.innerHTML = `🔥 イベント開催中<br>⏰ ${minutes}分${seconds}秒`;
+      }
+    }, 1000);
+    
   } else {
     adminEventActive = false;
     globalLuckMultiplier = 1;
-    document.getElementById("adminEventBanner").style.display="none";
-    document.getElementById("eventStatus").innerText="イベント停止中";
+    banner.style.display="none";
+    eventStatus.innerText="イベント停止中";
+    clearInterval(eventCountdownInterval);
   }
 });
 </script>
