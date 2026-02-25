@@ -1108,6 +1108,121 @@ function completePublicTrade(tradeId, trade){
 
 }
 
+function postToBoard(){
+
+  const message = document.getElementById("boardMessage").value;
+
+  if(selectedTradeCharIndex === null){
+    alert("キャラ選んで");
+    return;
+  }
+
+  db.ref("publicBoard").push({
+    owner: playerId,
+    ownerCharIndex: selectedTradeCharIndex,
+    message: message,
+    status: "open",
+    timestamp: Date.now()
+  });
+
+  alert("掲示板に投稿しました！");
+}
+
+db.ref("publicBoard").on("value",snap=>{
+
+  const data = snap.val();
+  const container = document.getElementById("publicTrades");
+  container.innerHTML="";
+
+  if(!data) return;
+
+  Object.entries(data).forEach(([id,trade])=>{
+
+    if(trade.status !== "open") return;
+
+    const ownerChar = playersCache[trade.owner]?.base?.[trade.ownerCharIndex];
+    if(!ownerChar) return;
+
+    const div = document.createElement("div");
+    div.style.border="1px solid #666";
+    div.style.padding="6px";
+    div.style.margin="6px 0";
+
+    div.innerHTML = `
+      <div><b>${trade.owner}</b></div>
+      <div>💬 ${trade.message||"メッセージなし"}</div>
+      <div>📦 提供：${ownerChar.name}</div>
+      <button onclick="applyToBoard('${id}')">交換申請</button>
+    `;
+
+    container.appendChild(div);
+  });
+
+});
+
+function applyToBoard(tradeId){
+
+  const myIndex = prompt("自分のキャラの番号を入力");
+
+  if(myIndex===null) return;
+
+  db.ref("publicBoard/"+tradeId).update({
+    applicant: playerId,
+    applicantCharIndex: Number(myIndex),
+    status:"pending"
+  });
+
+  alert("申請しました！");
+}
+
+db.ref("publicBoard").on("child_changed",snap=>{
+
+  const trade = snap.val();
+  const tradeId = snap.key;
+
+  if(trade.status==="pending" && trade.owner===playerId){
+
+    const accept = confirm("交換申請が来ました！承認しますか？");
+
+    if(accept){
+      completeBoardTrade(tradeId, trade);
+    }else{
+      db.ref("publicBoard/"+tradeId).update({
+        status:"open",
+        applicant:null,
+        applicantCharIndex:null
+      });
+    }
+
+  }
+
+});
+
+function completeBoardTrade(tradeId, trade){
+
+  db.ref().transaction(data=>{
+    if(!data) return data;
+
+    const ownerBase = data.players[trade.owner]?.base;
+    const applicantBase = data.players[trade.applicant]?.base;
+
+    if(!ownerBase || !applicantBase) return;
+
+    const ownerChar = ownerBase[trade.ownerCharIndex];
+    const applicantChar = applicantBase[trade.applicantCharIndex];
+
+    if(!ownerChar || !applicantChar) return;
+
+    ownerBase[trade.ownerCharIndex] = applicantChar;
+    applicantBase[trade.applicantCharIndex] = ownerChar;
+
+    data.publicBoard[tradeId].status="done";
+
+    return data;
+  });
+
+}
+
 /* ===== 合成表示 ===== */
 function renderFuse(){
   const fuseDiv = document.getElementById("fuseSlots");
