@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <title>kiichibrainrot</title>
 <style>
+/* 既存 walker 用 */
 .walker{
   position:absolute;
   left:50%;
@@ -23,6 +24,15 @@
   100% { transform: translateX(-50%) translateY(0px); }
 }
 
+@keyframes glowBlink {
+  0%, 100% { box-shadow: 0 0 10px magenta, 0 0 20px orange, 0 0 30px aqua; }
+  50% { box-shadow: 0 0 20px magenta, 0 0 40px orange, 0 0 60px aqua; }
+}
+
+.glow {
+  animation: float 1s ease-in-out infinite alternate, glowBlink 0.8s ease-in-out infinite alternate;
+}
+
 body{
   margin:0;
   background:#111;
@@ -37,6 +47,12 @@ body{
   left:10px;
   z-index:10;
   max-width:300px;
+  max-height:180px;
+  overflow-y:auto;
+}
+
+#ui h3 {
+  display:none;
 }
 
 #ui div {
@@ -95,6 +111,10 @@ button{cursor:pointer;}
   line-height:1.1;
 }
 
+.char{
+  position:relative;
+}
+
 #notificationPanel {
   position:fixed;
   bottom:20px;
@@ -119,22 +139,21 @@ button{cursor:pointer;}
   top:20px;
   right:20px;
   width:380px;
-  max-height:calc(100vh - 100px);
+  max-height:650px;
   background:#1e1e1e;
   color:white;
   padding:15px;
   border-radius:15px;
   box-shadow:0 0 25px black;
+  overflow-y:auto;
   z-index:3000;
   display:none;
   border:2px solid #4CAF50;
-  flex-direction:column;
 }
 
 #tradePanel h3{
   margin-top:0;
   color:#4CAF50;
-  margin-bottom:10px;
 }
 
 #tradePanel input{
@@ -163,7 +182,7 @@ button{cursor:pointer;}
 }
 
 .tradeList{
-  max-height:200px;
+  max-height:300px;
   overflow-y:auto;
   border:1px solid #555;
   border-radius:5px;
@@ -177,7 +196,6 @@ button{cursor:pointer;}
   border:1px solid #888;
   border-radius:5px;
   background:#222;
-  font-size:12px;
 }
 
 .tradeOffer.pending{
@@ -188,18 +206,6 @@ button{cursor:pointer;}
 .tradeOffer.waiting{
   border-color:#2196F3;
   background:#002a3a;
-}
-
-#tradePanelContent{
-  flex:1;
-  overflow-y:auto;
-  margin-bottom:10px;
-}
-
-#tradePanelFooter{
-  flex-shrink:0;
-  padding-top:10px;
-  border-top:1px solid #555;
 }
 
 #fuseArea{
@@ -284,19 +290,34 @@ button{cursor:pointer;}
   background:linear-gradient(45deg,gold,orange);
   color:black;
   font-weight:bold;
-  padding:15px 20px;
+  padding:12px 20px;
   border-radius:10px;
   box-shadow:0 0 15px gold;
   z-index:2000;
   animation:pulse 1s infinite alternate;
-  text-align:center;
-  font-size:14px;
-  line-height:1.6;
 }
 
 @keyframes pulse{
   from { transform:scale(1); box-shadow:0 0 10px gold; }
   to { transform:scale(1.08); box-shadow:0 0 25px orange; }
+}
+
+#codeBox{
+  margin:10px;
+}
+
+#codeBox input{
+  padding:5px;
+  border-radius:5px;
+  border:1px solid #666;
+  background:#222;
+  color:white;
+  width:150px;
+}
+
+#codeBox button{
+  padding:5px 10px;
+  margin:0 5px;
 }
 
 button{
@@ -417,7 +438,11 @@ const db = firebase.database();
   <div>倍率 x<span id="multiplier">1</span></div>
   <button id="upgradeBtn" onclick="upgradeBase()" style="width:100%; margin-top:8px;">リバース</button>
   <button onclick="showResetDialog()" style="background:#d32f2f; width:100%; margin-top:3px;">リセット</button>
-  <button onclick="cleanupOldTrades()" style="background:#ff9800; width:100%; margin-top:3px;">古い交換削除</button>
+  <hr>
+  <div id="codeBox">
+    <input id="codeInput" placeholder="コード入力">
+    <button onclick="useCode()">使用</button>
+  </div>
 </div>
 
 <div id="adminPanel">
@@ -435,29 +460,25 @@ const db = firebase.database();
 
 <div id="tradePanel">
   <h3>🌍 キャラ交換</h3>
-  <div id="tradePanelContent">
-    <div style="display:flex; gap:5px; margin-bottom:10px;">
-      <button onclick="switchTradeTab('offer')" id="tabOffer" style="flex:1; background:#4CAF50;">📤 出品</button>
-      <button onclick="switchTradeTab('find')" id="tabFind" style="flex:1; background:#666;">🔍 募集</button>
-    </div>
-    <div id="offerTab">
-      <h4 style="margin:5px 0;">自分のキャラから選択</h4>
-      <div class="tradeList" id="myCharList"></div>
-      <label style="font-size:12px;">募集説明:</label>
-      <input type="text" id="tradeMessage" placeholder="例：シークレット求む！">
-      <button onclick="postTrade()" style="width:100%; background:#4CAF50; margin-top:5px;">📤 出品する</button>
-      <hr style="margin:8px 0;">
-      <h4 style="margin:5px 0;">交換申請</h4>
-      <div class="tradeList" id="incomingRequests"></div>
-    </div>
-    <div id="findTab" style="display:none;">
-      <h4 style="margin:5px 0;">募集中の交換</h4>
-      <div class="tradeList" id="publicTradesList"></div>
-    </div>
+  <div style="display:flex; gap:5px; margin-bottom:10px;">
+    <button onclick="switchTradeTab('offer')" id="tabOffer" style="flex:1; background:#4CAF50;">📤 出品</button>
+    <button onclick="switchTradeTab('find')" id="tabFind" style="flex:1; background:#666;">🔍 募集</button>
   </div>
-  <div id="tradePanelFooter">
-    <button onclick="toggleTradePanel()" style="width:100%;">✕ 閉じる</button>
+  <div id="offerTab">
+    <h4>自分のキャラから選択</h4>
+    <div class="tradeList" id="myCharList"></div>
+    <label>募集説明:</label>
+    <input type="text" id="tradeMessage" placeholder="例：シークレット求む！">
+    <button onclick="postTrade()" style="width:100%; background:#4CAF50;">📤 出品する</button>
+    <hr>
+    <h4>交換申請</h4>
+    <div class="tradeList" id="incomingRequests"></div>
   </div>
+  <div id="findTab" style="display:none;">
+    <h4>募集中の交換</h4>
+    <div class="tradeList" id="publicTradesList"></div>
+  </div>
+  <button onclick="toggleTradePanel()" style="width:100%; margin-top:10px;">✕ 閉じる</button>
 </div>
 
 <div id="fuseArea">
@@ -468,7 +489,7 @@ const db = firebase.database();
   <button onclick="toggleFusePanel()" style="width:100%; margin-top:5px; background:#d32f2f;">✕ 閉じる</button>
 </div>
 
-<div id="adminEventBanner">👑 管理者イベント発動中<br><span id="eventCountdown"></span></div>
+<div id="adminEventBanner">👑 管理者イベント発動中</div>
 <div id="notificationPanel"></div>
 <div id="dialogBackdrop"></div>
 <div id="dialogBox">
@@ -551,23 +572,23 @@ const fuseTable = [
 
 let money=0, baseLevel=1, capacity=10, incomeMultiplier=1, base=[], fuseList=[], spawnInterval;
 
-function showNotification(message, type="success", duration=3000){
+function showNotification(message, type = "success", duration = 3000) {
   const panel = document.getElementById("notificationPanel");
   panel.textContent = message;
   panel.className = type;
   panel.style.display = "block";
-  setTimeout(()=>{ panel.style.display = "none"; }, duration);
+  setTimeout(() => { panel.style.display = "none"; }, duration);
 }
 
-function showToast(message, type="success"){
+function showToast(message, type = "success") {
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
   toast.textContent = message;
   document.body.appendChild(toast);
-  setTimeout(()=>{ toast.style.animation = "slideOut 0.4s"; setTimeout(()=>toast.remove(), 400); }, 3000);
+  setTimeout(() => { toast.style.animation = "slideOut 0.4s"; setTimeout(() => toast.remove(), 400); }, 3000);
 }
 
-function showDialog(title, message, callback){
+function showDialog(title, message, callback) {
   document.getElementById("dialogTitle").textContent = title;
   document.getElementById("dialogMessage").textContent = message;
   document.getElementById("dialogBox").classList.add("show");
@@ -575,14 +596,14 @@ function showDialog(title, message, callback){
   dialogCallback = callback;
 }
 
-function confirmDialog(){
+function confirmDialog() {
   document.getElementById("dialogBox").classList.remove("show");
   document.getElementById("dialogBackdrop").style.display = "none";
   if(dialogCallback) dialogCallback(true);
   dialogCallback = null;
 }
 
-function cancelDialog(){
+function cancelDialog() {
   document.getElementById("dialogBox").classList.remove("show");
   document.getElementById("dialogBackdrop").style.display = "none";
   if(dialogCallback) dialogCallback(false);
@@ -607,60 +628,54 @@ function format(num){
   return Math.floor(num);
 }
 
-function getCharName(c){ return c.name==="SECRET"?c.character:c.name; }
+function getCharName(c){ return c.name === "SECRET" ? c.character : c.name; }
 
 function getCharDisplay(c){
-  let attr=c.attribute?c.attribute.name:"Default";
-  let rate=format(c.rate)+"/s";
-  let mutations=(c.mutations&&c.mutations.length>0)?c.mutations.map(m=>m.icon).join(""):"";
+  let attr = c.attribute ? c.attribute.name : "Default";
+  let rate = format(c.rate) + "/s";
+  let mutations = (c.mutations && c.mutations.length > 0) ? c.mutations.map(m=>m.icon).join("") : "";
   return `[${attr}] ${getCharName(c)} ${mutations} +${rate}`;
 }
 
 function ensureBaseSlots(){
-  while(base.length<capacity) base.push(null);
-  if(base.length>capacity) base=base.slice(0,capacity);
+  while(base.length < capacity) base.push(null);
+  if(base.length > capacity) base = base.slice(0, capacity);
 }
 
 function updateUI(){
-  const cost=Math.floor(50000*Math.pow(4,baseLevel-1));
-  document.getElementById("money").innerText=format(money);
-  document.getElementById("level").innerText=baseLevel;
-  document.getElementById("cap").innerText=capacity;
-  document.getElementById("multiplier").innerText=incomeMultiplier.toFixed(1);
-  document.getElementById("upgradeBtn").innerText="リバース ("+format(cost)+")";
+  const cost = Math.floor(50000*Math.pow(4, baseLevel-1));
+  document.getElementById("money").innerText = format(money);
+  document.getElementById("level").innerText = baseLevel;
+  document.getElementById("cap").innerText = capacity;
+  document.getElementById("multiplier").innerText = incomeMultiplier.toFixed(1);
+  document.getElementById("upgradeBtn").innerText = "リバース (" + format(cost) + ")";
 }
 
 function toggleTradePanel(){
-  const panel=document.getElementById("tradePanel");
-  const fuseArea=document.getElementById("fuseArea");
-  if(panel.style.display==="flex"){ 
-    panel.style.display="none"; 
-  }
-  else { 
-    panel.style.display="flex"; 
-    fuseArea.style.display="none"; 
-    renderTradePanel(); 
-  }
+  const panel = document.getElementById("tradePanel");
+  const fuseArea = document.getElementById("fuseArea");
+  if(panel.style.display === "block"){ panel.style.display = "none"; }
+  else { panel.style.display = "block"; fuseArea.style.display = "none"; renderTradePanel(); }
 }
 
 function toggleFusePanel(){
-  const fuseArea=document.getElementById("fuseArea");
-  const panel=document.getElementById("tradePanel");
-  if(fuseArea.style.display==="flex"){ fuseArea.style.display="none"; }
-  else { fuseArea.style.display="flex"; panel.style.display="none"; }
+  const fuseArea = document.getElementById("fuseArea");
+  const panel = document.getElementById("tradePanel");
+  if(fuseArea.style.display === "flex"){ fuseArea.style.display = "none"; }
+  else { fuseArea.style.display = "flex"; panel.style.display = "none"; }
 }
 
 function switchTradeTab(tab){
-  currentTradeTab=tab;
-  document.getElementById("offerTab").style.display=tab==="offer"?"block":"none";
-  document.getElementById("findTab").style.display=tab==="find"?"block":"none";
-  document.getElementById("tabOffer").style.background=tab==="offer"?"#4CAF50":"#666";
-  document.getElementById("tabFind").style.background=tab==="find"?"#2196F3":"#666";
-  if(tab==="find") renderPublicTrades();
+  currentTradeTab = tab;
+  document.getElementById("offerTab").style.display = tab === "offer" ? "block" : "none";
+  document.getElementById("findTab").style.display = tab === "find" ? "block" : "none";
+  document.getElementById("tabOffer").style.background = tab === "offer" ? "#4CAF50" : "#666";
+  document.getElementById("tabFind").style.background = tab === "find" ? "#2196F3" : "#666";
+  if(tab === "find") renderPublicTrades();
 }
 
 function showResetDialog(){
-  showDialog("リセット確認", "本当にリセットしますか？", (confirmed)=>{
+  showDialog("リセット確認", "本当にリセットしますか？", (confirmed) => {
     if(confirmed){
       money=0; baseLevel=1; capacity=10; incomeMultiplier=1; base=[]; fuseList=[];
       ensureBaseSlots(); renderBase(); renderFuse(); updateUI();
@@ -669,61 +684,43 @@ function showResetDialog(){
   });
 }
 
-function cleanupOldTrades(){
-  showDialog("古い交換を削除", "status: 'completed'の古い交換記録を削除します。よろしいですか？", (confirmed)=>{
-    if(confirmed){
-      db.ref("publicTrades").once("value").then(snap=>{
-        const trades=snap.val();
-        if(!trades) return;
-        Object.entries(trades).forEach(([id, trade])=>{
-          if(trade.status==="completed"){
-            db.ref("publicTrades/"+id).remove();
-          }
-        });
-        showToast("✅ 完了済みの交換を削除しました", "success");
-        renderIncomingRequests();
-      });
-    }
-  });
-}
-
 function getRandomRarity(){
-  const adjusted=rarities.map(r=>({...r, chance:r.chance*globalLuckMultiplier}));
-  const total=adjusted.reduce((s,r)=>s+r.chance,0);
-  const rand=Math.random()*total;
+  const adjusted = rarities.map(r=>({...r, chance: r.chance * globalLuckMultiplier }));
+  const total = adjusted.reduce((s,r)=>s+r.chance,0);
+  const rand = Math.random()*total;
   let sum=0;
   for(let r of adjusted){ sum+=r.chance; if(rand<=sum) return r; }
 }
 
 function spawnWalker(){
-  let baseData=getRandomRarity();
-  let data={...baseData};
-  if(baseData.name==="SECRET"){
-    const pick=secretCharacters[Math.floor(Math.random()*secretCharacters.length)];
-    data={name:"SECRET", character:pick.character, rate:pick.rate, color:"black"};
+  let baseData = getRandomRarity();
+  let data = {...baseData};
+  if(baseData.name === "SECRET"){
+    const pick = secretCharacters[Math.floor(Math.random()*secretCharacters.length)];
+    data = {name:"SECRET", character: pick.character, rate: pick.rate, color:"black"};
   }
-  let totalChance=attributes.reduce((s,a)=>s+a.chance,0);
-  let rand=Math.random()*totalChance;
-  let sum=0;
-  for(let attr of attributes){ sum+=attr.chance; if(rand<=sum){ data.attribute=attr; break; }}
+  let totalChance = attributes.reduce((s,a)=>s+a.chance,0);
+  let rand = Math.random()*totalChance;
+  let sum = 0;
+  for(let attr of attributes){ sum += attr.chance; if(rand <= sum){ data.attribute = attr; break; }}
   
-  data.mutations=[];
+  data.mutations = [];
   if(adminEventActive){
     mutations.forEach(m=>{ if(Math.random()<0.15) data.mutations.push(m); });
   }
-  let totalMultiplier=data.attribute.multiplier;
-  data.mutations.forEach(m=>totalMultiplier+=m.bonus);
-  data.rate=Math.floor(data.rate*totalMultiplier);
+  let totalMultiplier = data.attribute.multiplier;
+  data.mutations.forEach(m=>totalMultiplier += m.bonus);
+  data.rate = Math.floor(data.rate * totalMultiplier);
 
-  const div=document.createElement("div");
-  div.className="walker";
-  div.style.background=data.attribute?data.attribute.color:"#444";
-  div.style.border="2px solid white";
+  const div = document.createElement("div");
+  div.className = "walker";
+  div.style.background = data.attribute ? data.attribute.color : "#444";
+  div.style.border = "2px solid white";
 
-  let attributeName=data.attribute?data.attribute.name:"Default";
-  let rarityText=data.name==="SECRET"?data.character:data.name;
-  const raritySpan=document.createElement("span");
-  raritySpan.innerText=rarityText;
+  let attributeName = data.attribute ? data.attribute.name : "Default";
+  let rarityText = data.name === "SECRET" ? data.character : data.name;
+  const raritySpan = document.createElement("span");
+  raritySpan.innerText = rarityText;
   switch(data.name){
     case "COMMON": raritySpan.style.background="#6b3e1d"; break;
     case "RARE": raritySpan.style.background="#4dd0ff"; raritySpan.style.color="#003344"; break;
@@ -734,37 +731,37 @@ function spawnWalker(){
     case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
   }
   raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
-  let mutationIcons=(data.mutations&&data.mutations.length>0)?data.mutations.map(m=>m.icon).join(""):"";
-  div.innerHTML="<div>["+attributeName+"]</div><div>"+raritySpan.outerHTML+"</div><div>+"+format(data.rate)+"/s</div>";
-  div.style.top="-100px";
+  let mutationIcons = (data.mutations && data.mutations.length > 0) ? data.mutations.map(m=>m.icon).join("") : "";
+  div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>+" + format(data.rate) + "/s</div>";
+  div.style.top = "-100px";
   document.body.appendChild(div);
   let pos=-100;
-  const move=setInterval(()=>{
-    pos+=1;
-    div.style.top=pos+"px";
+  const move = setInterval(()=>{
+    pos += 1;
+    div.style.top = pos + "px";
     if(pos>window.innerHeight){ div.remove(); clearInterval(move); }
   },30);
-  div.onclick=()=>{
-    const emptyIndex=base.findIndex(s=>s===null);
+  div.onclick = ()=>{
+    const emptyIndex = base.findIndex(s=>s===null);
     if(emptyIndex!==-1){ base[emptyIndex]=data; renderBase(); div.remove(); clearInterval(move); }
   };
-  data.baseRate=data.rate;
+  data.baseRate = data.rate;
 }
 
 function renderBase(){
-  const baseDiv=document.getElementById("base");
-  baseDiv.innerHTML="";
+  const baseDiv = document.getElementById("base");
+  baseDiv.innerHTML = "";
   base.forEach((c,i)=>{
-    const div=document.createElement("div");
-    div.className="char";
+    const div = document.createElement("div");
+    div.className = "char";
     if(c){
-      div.style.background=c.attribute?c.attribute.color:"#444";
-      div.style.border="1px solid #333";
-      let mutationIcons=(c.mutations&&c.mutations.length>0)?c.mutations.map(m=>m.icon).join(""):"";
-      let attributeName=c.attribute?c.attribute.name:"Default";
-      let rarityText=c.name==="SECRET"?c.character:c.name;
-      const raritySpan=document.createElement("span");
-      raritySpan.innerText=rarityText;
+      div.style.background = c.attribute ? c.attribute.color : "#444";
+      div.style.border = "1px solid #333";
+      let mutationIcons = (c.mutations && c.mutations.length > 0) ? c.mutations.map(m=>m.icon).join("") : "";
+      let attributeName = c.attribute ? c.attribute.name : "Default";
+      let rarityText = c.name === "SECRET" ? c.character : c.name;
+      const raritySpan = document.createElement("span");
+      raritySpan.innerText = rarityText;
       switch(c.name){
         case "COMMON": raritySpan.style.background="#6b3e1d"; break;
         case "RARE": raritySpan.style.background="#4dd0ff"; raritySpan.style.color="#003344"; break;
@@ -775,33 +772,35 @@ function renderBase(){
         case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
       }
       raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
-      div.innerHTML="<div>["+attributeName+"]</div><div>"+raritySpan.outerHTML+"</div><div>"+mutationIcons+" +"+format(c.rate)+"/s</div>";
-      div.onclick=()=>{ if(fuseList.length>=5) return; fuseList.push(c); base[i]=null; renderBase(); renderFuse(); };
-      div.oncontextmenu=(e)=>{ e.preventDefault(); base[i]=null; renderBase(); };
+      div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
+      div.onclick = ()=>{ if(fuseList.length >= 5) return; fuseList.push(c); base[i] = null; renderBase(); renderFuse(); };
+      div.oncontextmenu = (e)=>{ e.preventDefault(); base[i] = null; renderBase(); };
     } else {
-      div.style.background="#111";
-      div.style.border="1px dashed #333";
+      div.style.background = "#111";
+      div.style.border = "1px dashed #333";
     }
     baseDiv.appendChild(div);
   });
 }
 
 function renderFuse(){
-  const fuseDiv=document.getElementById("fuseSlots");
-  fuseDiv.innerHTML="";
-  let totalBase=0;
+  const fuseDiv = document.getElementById("fuseSlots");
+  fuseDiv.innerHTML = "";
+  let total = 0;
+  let totalBase = 0;
   
   fuseList.forEach((c)=>{
-    totalBase+=(c.baseRate||c.rate);
-    const div=document.createElement("div");
-    div.className="char";
-    div.style.background=c.attribute?c.attribute.color:"#444";
-    div.style.fontSize="11px";
-    let mutationIcons=(c.mutations&&c.mutations.length>0)?c.mutations.map(m=>m.icon).join(""):"";
-    let attributeName=c.attribute?c.attribute.name:"Default";
-    let rarityText=c.name==="SECRET"?c.character:c.name;
-    const raritySpan=document.createElement("span");
-    raritySpan.innerText=rarityText;
+    total += c.rate;
+    totalBase += (c.baseRate || c.rate);
+    const div = document.createElement("div");
+    div.className = "char";
+    div.style.background = c.attribute ? c.attribute.color : "#444";
+    div.style.fontSize = "11px";
+    let mutationIcons = (c.mutations && c.mutations.length > 0) ? c.mutations.map(m=>m.icon).join("") : "";
+    let attributeName = c.attribute ? c.attribute.name : "Default";
+    let rarityText = c.name === "SECRET" ? c.character : c.name;
+    const raritySpan = document.createElement("span");
+    raritySpan.innerText = rarityText;
     switch(c.name){
       case "COMMON": raritySpan.style.background="#6b3e1d"; break;
       case "RARE": raritySpan.style.background="#4dd0ff"; raritySpan.style.color="#003344"; break;
@@ -812,75 +811,75 @@ function renderFuse(){
       case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
     }
     raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
-    div.innerHTML="<div style='font-size:10px;'>["+attributeName+"]</div><div>"+raritySpan.outerHTML+"</div><div>"+mutationIcons+" +"+format(c.rate)+"/s</div>";
-    div.onclick=()=>{ const emptyIndex=base.findIndex(s=>s===null); if(emptyIndex===-1) return; const index=fuseList.indexOf(c); if(index!==-1) fuseList.splice(index,1); base[emptyIndex]=c; renderBase(); renderFuse(); };
+    div.innerHTML = "<div style='font-size:10px;'>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
+    div.onclick = ()=>{ const emptyIndex = base.findIndex(s=>s===null); if(emptyIndex === -1) return; const index = fuseList.indexOf(c); if(index !== -1) fuseList.splice(index,1); base[emptyIndex] = c; renderBase(); renderFuse(); };
     fuseDiv.appendChild(div);
   });
   
-  document.getElementById("fuseTotal").innerText=format(totalBase);
+  document.getElementById("fuseTotal").innerText = format(totalBase);
 
-  if(fuseList.length>0){
-    const totalBaseRate=fuseList.reduce((sum,c)=>sum+(c.baseRate||c.rate),0);
-    const table=fuseTable.find(t=>totalBaseRate>=t.min&&totalBaseRate<t.max);
+  if(fuseList.length > 0){
+    const totalBaseRate = fuseList.reduce((sum,c)=>sum+(c.baseRate||c.rate),0);
+    const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
     if(table){
-      const chanceDiv=document.createElement("div");
-      chanceDiv.style.marginTop="8px"; chanceDiv.style.fontSize="10px"; chanceDiv.style.padding="8px"; chanceDiv.style.background="#333"; chanceDiv.style.borderRadius="5px";
-      chanceDiv.innerHTML="<b>合成結果確率</b><br>";
-      const totalChance=table.results.reduce((s,r)=>s+r.chance,0);
-      table.results.forEach(r=>{ let name=r.type==="secret"?r.value:r.value; let percent=Math.round(r.chance/totalChance*100); chanceDiv.innerHTML+=name+" : "+percent+"%<br>"; });
+      const chanceDiv = document.createElement("div");
+      chanceDiv.style.marginTop = "8px"; chanceDiv.style.fontSize = "10px"; chanceDiv.style.padding = "8px"; chanceDiv.style.background = "#333"; chanceDiv.style.borderRadius = "5px";
+      chanceDiv.innerHTML = "<b>合成結果確率</b><br>";
+      const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
+      table.results.forEach(r=>{ let name = r.type === "secret" ? r.value : r.value; let percent = Math.round(r.chance / totalChance * 100); chanceDiv.innerHTML += name + " : " + percent + "%<br>"; });
       fuseDiv.appendChild(chanceDiv);
     }
   }
 }
 
 function fuse(){
-  if(fuseList.length!==5) { showNotification(`⚠️ 5体必要です！（現在 ${fuseList.length}/5）`, "error", 2000); return; }
-  const used=fuseList.splice(0,5);
+  if(fuseList.length !== 5) { showNotification(`⚠️ 5体必要です！（現在 ${fuseList.length}/5）`, "error", 2000); return; }
+  const used = fuseList.splice(0,5);
   
-  const totalBaseRate=used.reduce((sum,c)=>sum+(c.baseRate||c.rate),0);
+  const totalBaseRate = used.reduce((sum,c)=>sum + (c.baseRate || c.rate),0);
   
-  const table=fuseTable.find(t=>totalBaseRate>=t.min&&totalBaseRate<t.max);
+  const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
   if(!table){ renderFuse(); return; }
   
-  const totalChance=table.results.reduce((s,r)=>s+r.chance,0);
-  const rand=Math.random()*totalChance;
-  let sum=0, chosen=table.results[0];
-  for(let r of table.results){ sum+=r.chance; if(rand<=sum){ chosen=r; break; }}
+  const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
+  const rand = Math.random() * totalChance;
+  let sum = 0, chosen = table.results[0];
+  for(let r of table.results){ sum += r.chance; if(rand <= sum){ chosen = r; break; }}
   
   let newChar;
-  if(chosen.type==="rarity"){
-    const rarityData=rarities.find(r=>r.name===chosen.value);
-    newChar={...rarityData};
-    newChar.baseRate=rarityData.rate;
+  if(chosen.type === "rarity"){
+    const rarityData = rarities.find(r => r.name === chosen.value);
+    newChar = {...rarityData};
+    newChar.baseRate = rarityData.rate;
   } else {
-    const secretData=secretCharacters.find(s=>s.character===chosen.value);
-    newChar={name:"SECRET", character:secretData.character, color:"black", baseRate:secretData.rate};
+    const secretData = secretCharacters.find(s => s.character === chosen.value);
+    newChar = {name:"SECRET", character: secretData.character, color:"black", baseRate: secretData.rate};
   }
   
-  const firstChar=used[0];
-  newChar.attribute=firstChar.attribute;
-  newChar.mutations=firstChar.mutations?[...firstChar.mutations]:[];
+  const firstChar = used[0];
+  newChar.attribute = firstChar.attribute;
+  newChar.mutations = firstChar.mutations ? [...firstChar.mutations] : [];
   
-  let totalMultiplier=newChar.attribute?newChar.attribute.multiplier:1;
-  newChar.mutations.forEach(m=>totalMultiplier+=m.bonus);
-  newChar.rate=Math.floor(newChar.baseRate*totalMultiplier);
+  let totalMultiplier = newChar.attribute ? newChar.attribute.multiplier : 1;
+  newChar.mutations.forEach(m => totalMultiplier += m.bonus);
+  newChar.rate = Math.floor(newChar.baseRate * totalMultiplier);
   
-  const emptyIndex=base.findIndex(s=>s===null);
-  if(emptyIndex!==-1){ base[emptyIndex]=newChar; } else { fuseList.push(newChar); }
+  const emptyIndex = base.findIndex(s=>s===null);
+  if(emptyIndex !== -1){ base[emptyIndex] = newChar; } else { fuseList.push(newChar); }
   renderBase(); renderFuse();
   showToast(`✨ ${getCharName(newChar)} が生成されました！`, "success");
 }
 
 function upgradeBase(){
   const cost=Math.floor(50000*Math.pow(4,baseLevel-1));
-  if(money>=cost){ money=0; baseLevel++; capacity+=1; incomeMultiplier+=0.5; ensureBaseSlots(); renderBase(); updateUI(); showToast("���� リバースレベルが上がりました！", "success"); }
-  else { showNotification(`💰 ${format(cost-money)} 足りません`, "error", 2000); }
+  if(money>=cost){ money=0; baseLevel++; capacity+=1; incomeMultiplier+=0.5; ensureBaseSlots(); renderBase(); updateUI(); showToast("📈 リバースレベルが上がりました！", "success"); }
+  else { showNotification(`💰 ${format(cost - money)} 足りません`, "error", 2000); }
 }
 
 function startAdminEvent(){
   if(!isAdmin) return;
-  const endTime=Date.now()+(20*60*1000);
-  db.ref("globalEvent").set({active:true, luck:67, startTime:Date.now(), endTime:endTime});
+  const endTime = Date.now() + (20 * 60 * 1000);
+  db.ref("globalEvent").set({active: true, luck: 67, startTime: Date.now(), endTime: endTime});
   showToast("👑 イベントを開始しました", "success");
 }
 
@@ -891,14 +890,14 @@ function stopAdminEvent(){
 }
 
 function useCode(){
-  const input=document.getElementById("codeInput");
-  const code=input.value.trim();
-  input.value="";
+  const input = document.getElementById("codeInput");
+  const code = input.value.trim();
+  input.value = "";
   if(!code) return;
-  if(!isAdmin&&usedCodes.includes(code)){ showNotification("❌ このコードは既に使用済みです！", "error", 2000); return; }
-  if(code==="670402"){
-    isAdmin=true;
-    document.getElementById("adminPanel").style.display="block";
+  if(!isAdmin && usedCodes.includes(code)){ showNotification("❌ このコードは既に使用済みです！", "error", 2000); return; }
+  if(code === "670402"){
+    isAdmin = true;
+    document.getElementById("adminPanel").style.display = "block";
     showNotification("✅ 管理者モード起動", "success", 2000);
     return;
   }
@@ -911,96 +910,96 @@ function renderTradePanel(){
 }
 
 function renderMyCharList(){
-  const container=document.getElementById("myCharList");
-  container.innerHTML="";
+  const container = document.getElementById("myCharList");
+  container.innerHTML = "";
   base.forEach((c, i)=>{
     if(!c) return;
-    const div=document.createElement("div");
-    div.className="tradeCharItem";
-    if(i===selectedMyChar) div.classList.add("selected");
-    div.innerHTML=`<div><strong>[${i}] ${getCharName(c)}</strong></div><div style="font-size:11px;">${getCharDisplay(c)}</div>`;
-    div.onclick=()=>{ selectedMyChar=(selectedMyChar===i)?null:i; renderMyCharList(); };
+    const div = document.createElement("div");
+    div.className = "tradeCharItem";
+    if(i === selectedMyChar) div.classList.add("selected");
+    div.innerHTML = `<div><strong>[${i}] ${getCharName(c)}</strong></div><div style="font-size:11px;">${getCharDisplay(c)}</div>`;
+    div.onclick = ()=>{ selectedMyChar = (selectedMyChar === i) ? null : i; renderMyCharList(); };
     container.appendChild(div);
   });
 }
 
 function postTrade(){
-  if(selectedMyChar===null){ showNotification("⚠️ キャラを選択してください！", "error", 2000); return; }
+  if(selectedMyChar === null){ showNotification("⚠️ キャラを選択してください！", "error", 2000); return; }
   
   db.ref("publicTrades").once("value").then(snap=>{
-    const trades=snap.val();
-    let myActiveListings=0;
+    const trades = snap.val();
+    let myActiveListings = 0;
     if(trades){
       Object.values(trades).forEach(trade=>{
-        if(trade.owner===playerId&&trade.status==="open") myActiveListings++;
+        if(trade.owner === playerId && trade.status === "open") myActiveListings++;
       });
     }
     
-    if(myActiveListings>=2){
+    if(myActiveListings >= 2){
       showNotification("⚠️ 同時に出品できるのは2個までです！", "error", 2000);
       return;
     }
     
-    const char=base[selectedMyChar];
-    const message=document.getElementById("tradeMessage").value;
+    const char = base[selectedMyChar];
+    const message = document.getElementById("tradeMessage").value;
     db.ref("publicTrades").push({
-      owner:playerId, 
-      ownerCharIndex:selectedMyChar, 
-      ownerCharData:JSON.stringify(char), 
-      ownerCharName:getCharName(char), 
-      message:message, 
-      status:"open", 
-      timestamp:Date.now()
+      owner: playerId, 
+      ownerCharIndex: selectedMyChar, 
+      ownerCharData: JSON.stringify(char), 
+      ownerCharName: getCharName(char), 
+      message: message, 
+      status: "open", 
+      timestamp: Date.now()
     });
     showToast("✅ キャラを出品しました！", "success");
-    document.getElementById("tradeMessage").value="";
-    selectedMyChar=null;
+    document.getElementById("tradeMessage").value = "";
+    selectedMyChar = null;
     renderMyCharList();
   });
 }
 
 function renderIncomingRequests(){
-  const container=document.getElementById("incomingRequests");
-  container.innerHTML="";
+  const container = document.getElementById("incomingRequests");
+  container.innerHTML = "";
   
   db.ref("publicTrades").once("value").then(snap=>{
-    const trades=snap.val();
-    if(!trades) { container.innerHTML="<div style='text-align:center; padding:10px; color:#999;'>申請はありません</div>"; return; }
+    const trades = snap.val();
+    if(!trades) return;
     
-    let foundIncoming=false;
-    let foundWaiting=false;
+    let foundIncoming = false;
+    let foundWaiting = false;
     
-    const incomingDiv=document.createElement("div");
-    incomingDiv.innerHTML="<h5 style='color:#4CAF50; margin:5px 0;'>📥 受け取った申請</h5>";
+    const incomingDiv = document.createElement("div");
+    incomingDiv.innerHTML = "<h5 style='color:#4CAF50; margin:10px 0 5px 0;'>📥 受け取った申請</h5>";
     
     Object.entries(trades).forEach(([id, trade])=>{
-      if(trade.status!=="waiting"||trade.owner!==playerId) return;
-      foundIncoming=true;
-      const div=document.createElement("div");
-      div.className="tradeOffer pending";
-      const applicantChar=JSON.parse(trade.applicantCharData);
-      div.innerHTML=`<div><strong>📩 ${trade.applicantId}</strong> が申請</div><div style="font-size:11px; margin:3px 0;">📦 求: <strong>${trade.ownerCharName}</strong></div><div style="font-size:11px; margin:3px 0;">🎁 提: <strong>${getCharName(applicantChar)}</strong></div>`;
+      if(trade.status !== "waiting" || trade.owner !== playerId) return;
+      foundIncoming = true;
+      const div = document.createElement("div");
+      div.className = "tradeOffer pending";
+      const applicantChar = JSON.parse(trade.applicantCharData);
+      div.innerHTML = `<div><strong>📩 ${trade.applicantId}</strong> が申請</div><div style="font-size:12px; margin:5px 0;">📦 求める: <strong>${trade.ownerCharName}</strong></div><div style="font-size:12px; margin:5px 0;">🎁 提供: <strong>${getCharName(applicantChar)}</strong></div><div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
       
-      const btnDiv=document.createElement("div");
-      btnDiv.style.marginTop="5px";
-      btnDiv.style.display="flex";
-      btnDiv.style.gap="5px";
+      const btnDiv = document.createElement("div");
+      btnDiv.style.marginTop = "8px";
+      btnDiv.style.display = "flex";
+      btnDiv.style.gap = "5px";
       
-      const acceptBtn=document.createElement("button");
-      acceptBtn.textContent="✅ 承認";
-      acceptBtn.style.flex="1";
-      acceptBtn.style.fontSize="11px";
-      acceptBtn.style.padding="3px";
-      acceptBtn.style.background="#4CAF50";
-      acceptBtn.onclick=()=>{ acceptTradeRequest(id, trade); };
+      const acceptBtn = document.createElement("button");
+      acceptBtn.textContent = "✅ 承認";
+      acceptBtn.style.flex = "1";
+      acceptBtn.style.fontSize = "11px";
+      acceptBtn.style.padding = "5px";
+      acceptBtn.style.background = "#4CAF50";
+      acceptBtn.onclick = ()=>{ acceptTradeRequest(id, trade); };
       
-      const rejectBtn=document.createElement("button");
-      rejectBtn.textContent="❌ 拒否";
-      rejectBtn.style.flex="1";
-      rejectBtn.style.fontSize="11px";
-      rejectBtn.style.padding="3px";
-      rejectBtn.style.background="#d32f2f";
-      rejectBtn.onclick=()=>{ rejectTradeRequest(id); };
+      const rejectBtn = document.createElement("button");
+      rejectBtn.textContent = "❌ 拒否";
+      rejectBtn.style.flex = "1";
+      rejectBtn.style.fontSize = "11px";
+      rejectBtn.style.padding = "5px";
+      rejectBtn.style.background = "#d32f2f";
+      rejectBtn.onclick = ()=>{ rejectTradeRequest(id); };
       
       btnDiv.appendChild(acceptBtn);
       btnDiv.appendChild(rejectBtn);
@@ -1010,25 +1009,26 @@ function renderIncomingRequests(){
     
     if(foundIncoming) container.appendChild(incomingDiv);
     
-    const waitingDiv=document.createElement("div");
-    waitingDiv.innerHTML="<h5 style='color:#2196F3; margin:5px 0;'>��� 承認待ち</h5>";
+    const waitingDiv = document.createElement("div");
+    waitingDiv.innerHTML = "<h5 style='color:#2196F3; margin:10px 0 5px 0;'>⏳ 承認待ち</h5>";
     
     Object.entries(trades).forEach(([id, trade])=>{
-      if(trade.status!=="waiting"||trade.applicantId!==playerId) return;
-      foundWaiting=true;
-      const div=document.createElement("div");
-      div.className="tradeOffer waiting";
-      div.innerHTML=`<div><strong>⏳ ${trade.owner}</strong> の承認待ち</div><div style="font-size:11px; margin:3px 0;">📦 希: <strong>${trade.ownerCharName}</strong></div><div style="font-size:11px; margin:3px 0;">🎁 提: <strong>${getCharName(JSON.parse(trade.applicantCharData))}</strong></div>`;
+      if(trade.status !== "waiting" || trade.applicantId !== playerId) return;
+      foundWaiting = true;
+      const div = document.createElement("div");
+      div.className = "tradeOffer waiting";
+      const ownerChar = JSON.parse(trade.ownerCharData);
+      div.innerHTML = `<div><strong>⏳ ${trade.owner}</strong> の承認待ち</div><div style="font-size:12px; margin:5px 0;">📦 希望: <strong>${trade.ownerCharName}</strong></div><div style="font-size:12px; margin:5px 0;">🎁 提供: <strong>${getCharName(JSON.parse(trade.applicantCharData))}</strong></div><div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
       
-      const btnDiv=document.createElement("div");
-      btnDiv.style.marginTop="5px";
-      const cancelBtn=document.createElement("button");
-      cancelBtn.textContent="❌ 取り消す";
-      cancelBtn.style.width="100%";
-      cancelBtn.style.fontSize="11px";
-      cancelBtn.style.padding="3px";
-      cancelBtn.style.background="#d32f2f";
-      cancelBtn.onclick=()=>{ cancelTradeRequest(id); };
+      const btnDiv = document.createElement("div");
+      btnDiv.style.marginTop = "8px";
+      const cancelBtn = document.createElement("button");
+      cancelBtn.textContent = "❌ 申請を取り消す";
+      cancelBtn.style.width = "100%";
+      cancelBtn.style.fontSize = "11px";
+      cancelBtn.style.padding = "5px";
+      cancelBtn.style.background = "#d32f2f";
+      cancelBtn.onclick = ()=>{ cancelTradeRequest(id); };
       btnDiv.appendChild(cancelBtn);
       div.appendChild(btnDiv);
       waitingDiv.appendChild(div);
@@ -1036,20 +1036,20 @@ function renderIncomingRequests(){
     
     if(foundWaiting) container.appendChild(waitingDiv);
     
-    if(!foundIncoming&&!foundWaiting){
-      container.innerHTML="<div style='text-align:center; padding:10px; color:#999;'>申請はありません</div>";
+    if(!foundIncoming && !foundWaiting){
+      container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>申請はありません</div>";
     }
   });
 }
 
 function acceptTradeRequest(tradeId, trade){
-  const myChar=base[trade.ownerCharIndex];
-  const theirChar=JSON.parse(trade.applicantCharData);
+  const myChar = base[trade.ownerCharIndex];
+  const theirChar = JSON.parse(trade.applicantCharData);
   if(!myChar){ showNotification("❌ キャラが見つかりません", "error", 2000); return; }
   
-  base[trade.ownerCharIndex]=theirChar;
+  base[trade.ownerCharIndex] = theirChar;
   
-  db.ref("publicTrades/"+tradeId).update({status:"completed", ownerApproved:true});
+  db.ref("publicTrades/" + tradeId).update({status: "completed", ownerApproved: true});
   
   renderBase();
   saveGame();
@@ -1059,9 +1059,9 @@ function acceptTradeRequest(tradeId, trade){
 }
 
 function rejectTradeRequest(tradeId){
-  showDialog("申請を拒否", "この申請を拒否しますか？", (confirmed)=>{
+  showDialog("申請を拒否", "この申請を拒否しますか？", (confirmed) => {
     if(confirmed){
-      db.ref("publicTrades/"+tradeId).remove();
+      db.ref("publicTrades/" + tradeId).remove();
       showToast("❌ 申請を拒否しました", "info");
       renderIncomingRequests();
     }
@@ -1069,9 +1069,9 @@ function rejectTradeRequest(tradeId){
 }
 
 function cancelTradeRequest(tradeId){
-  showDialog("申請を取り消し", "この申請を取り消しますか？", (confirmed)=>{
+  showDialog("申請を取り消し", "この申請を取り消しますか？", (confirmed) => {
     if(confirmed){
-      db.ref("publicTrades/"+tradeId).remove();
+      db.ref("publicTrades/" + tradeId).remove();
       showToast("✅ 申請を取り消しました", "success");
       renderIncomingRequests();
     }
@@ -1079,81 +1079,81 @@ function cancelTradeRequest(tradeId){
 }
 
 function renderPublicTrades(){
-  const container=document.getElementById("publicTradesList");
-  container.innerHTML="読み込み中...";
+  const container = document.getElementById("publicTradesList");
+  container.innerHTML = "読み込み中...";
   db.ref("publicTrades").once("value").then(snap=>{
-    const trades=snap.val();
-    container.innerHTML="";
-    if(!trades){ container.innerHTML="<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>"; return; }
-    let found=false;
+    const trades = snap.val();
+    container.innerHTML = "";
+    if(!trades){ container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>"; return; }
+    let found = false;
     Object.entries(trades).forEach(([id, trade])=>{
-      if(trade.status!=="open"||trade.owner===playerId) return;
-      found=true;
-      const div=document.createElement("div");
-      div.className="tradeOffer";
-      const ownerChar=JSON.parse(trade.ownerCharData);
-      div.innerHTML=`<div><strong>📤 ${trade.owner}</strong></div><div style="font-size:11px; margin:3px 0;">📦 募: <strong>${getCharName(ownerChar)}</strong></div>`;
-      const selectDiv=document.createElement("div");
-      selectDiv.style.marginTop="5px";
-      selectDiv.innerHTML="<div style='font-size:10px; margin-bottom:3px;'>交換するキャラ:</div>";
+      if(trade.status !== "open" || trade.owner === playerId) return;
+      found = true;
+      const div = document.createElement("div");
+      div.className = "tradeOffer";
+      const ownerChar = JSON.parse(trade.ownerCharData);
+      div.innerHTML = `<div><strong>📤 ${trade.owner}</strong></div><div style="font-size:12px; margin:5px 0;">📦 募集: <strong>${getCharName(ownerChar)}</strong></div><div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
+      const selectDiv = document.createElement("div");
+      selectDiv.style.marginTop = "8px";
+      selectDiv.innerHTML = "<div style='font-size:11px; margin-bottom:5px;'>交換するキャラ:</div>";
       base.forEach((c, idx)=>{
         if(!c) return;
-        const btn=document.createElement("button");
-        btn.textContent=`[${idx}] ${getCharName(c)}`;
-        btn.style.width="100%";
-        btn.style.marginTop="2px";
-        btn.style.fontSize="10px";
-        btn.style.padding="3px";
-        btn.onclick=()=>{ applyTrade(id, trade, idx); };
+        const btn = document.createElement("button");
+        btn.textContent = `[${idx}] ${getCharName(c)}`;
+        btn.style.width = "100%";
+        btn.style.marginTop = "3px";
+        btn.style.fontSize = "11px";
+        btn.style.padding = "5px";
+        btn.onclick = ()=>{ applyTrade(id, trade, idx); };
         selectDiv.appendChild(btn);
       });
       div.appendChild(selectDiv);
       container.appendChild(div);
     });
-    if(!found) container.innerHTML="<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>";
+    if(!found) container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>";
   });
 }
 
 function applyTrade(tradeId, trade, myCharIdx){
-  const myChar=base[myCharIdx];
+  const myChar = base[myCharIdx];
   if(!myChar){ showNotification("❌ キャラが見つかりません", "error", 2000); return; }
   
-  db.ref("publicTrades/"+tradeId).update({
-    status:"waiting",
-    applicantId:playerId,
-    applicantCharIndex:myCharIdx,
-    applicantCharData:JSON.stringify(myChar)
+  db.ref("publicTrades/" + tradeId).update({
+    status: "waiting",
+    applicantId: playerId,
+    applicantCharIndex: myCharIdx,
+    applicantCharData: JSON.stringify(myChar)
   });
   
-  showToast("✅ 申請を送信しました！", "success");
+  showToast("✅ 交換申請を送信しました！承認待ちです...", "success");
   switchTradeTab("offer");
   renderIncomingRequests();
 }
 
-const adminPanel=document.getElementById("adminPanel");
-let isDragging=false, offsetX, offsetY;
-adminPanel.addEventListener("mousedown", (e)=>{ isDragging=true; offsetX=e.clientX-adminPanel.offsetLeft; offsetY=e.clientY-adminPanel.offsetTop; adminPanel.style.right="auto"; });
-document.addEventListener("mousemove", (e)=>{ if(!isDragging) return; adminPanel.style.left=(e.clientX-offsetX)+"px"; adminPanel.style.top=(e.clientY-offsetY)+"px"; });
-document.addEventListener("mouseup", ()=>{ isDragging=false; });
+const adminPanel = document.getElementById("adminPanel");
+let isDragging = false, offsetX, offsetY;
+adminPanel.addEventListener("mousedown", (e)=>{ isDragging = true; offsetX = e.clientX - adminPanel.offsetLeft; offsetY = e.clientY - adminPanel.offsetTop; adminPanel.style.right = "auto"; });
+document.addEventListener("mousemove", (e)=>{ if(!isDragging) return; adminPanel.style.left = (e.clientX - offsetX) + "px"; adminPanel.style.top = (e.clientY - offsetY) + "px"; });
+document.addEventListener("mouseup", ()=>{ isDragging = false; });
 
-setInterval(()=>{ let income=base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0); money+=income*incomeMultiplier; updateUI(); },1000);
+setInterval(()=>{ let income = base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0); money += income * incomeMultiplier; updateUI(); },1000);
 
 function saveGame(){
-  db.ref("players/"+playerId).set({money, baseLevel, capacity, incomeMultiplier, base, fuseList, lastSave:Date.now()});
+  db.ref("players/" + playerId).set({money, baseLevel, capacity, incomeMultiplier, base, fuseList, lastSave: Date.now()});
 }
 
 setInterval(saveGame, 10000);
 
 function loadGame(){
-  db.ref("players/"+playerId).once("value").then(snapshot=>{
-    const data=snapshot.val();
+  db.ref("players/" + playerId).once("value").then(snapshot=>{
+    const data = snapshot.val();
     if(!data) return;
-    money=data.money||0;
-    baseLevel=data.baseLevel||1;
-    capacity=data.capacity||10;
-    incomeMultiplier=data.incomeMultiplier||1;
-    base=data.base||[];
-    fuseList=data.fuseList||[];
+    money = data.money || 0;
+    baseLevel = data.baseLevel || 1;
+    capacity = data.capacity || 10;
+    incomeMultiplier = data.incomeMultiplier || 1;
+    base = data.base || [];
+    fuseList = data.fuseList || [];
     ensureBaseSlots();
     renderBase();
     renderFuse();
@@ -1163,7 +1163,7 @@ function loadGame(){
 
 function startSpawn(){ spawnInterval=setInterval(spawnWalker,3000); }
 function stopSpawn(){ clearInterval(spawnInterval); }
-document.addEventListener("visibilitychange",()=>{ document.hidden?stopSpawn():startSpawn(); });
+document.addEventListener("visibilitychange",()=>{ document.hidden ? stopSpawn() : startSpawn(); });
 
 loadGame();
 ensureBaseSlots();
@@ -1172,40 +1172,38 @@ startSpawn();
 updateUI();
 
 db.ref("globalEvent").on("value", snapshot=>{
-  const data=snapshot.val();
-  const eventStatus=document.getElementById("eventStatus");
-  const banner=document.getElementById("adminEventBanner");
-  const countdown=document.getElementById("eventCountdown");
+  const data = snapshot.val();
+  const eventStatus = document.getElementById("eventStatus");
+  const banner = document.getElementById("adminEventBanner");
   
-  if(data&&data.active){
-    adminEventActive=true;
-    globalLuckMultiplier=data.luck;
+  if(data && data.active){
+    adminEventActive = true;
+    globalLuckMultiplier = data.luck;
     banner.style.display="block";
     
     clearInterval(eventCountdownInterval);
-    eventCountdownInterval=setInterval(()=>{
-      const now=Date.now();
-      const timeLeft=data.endTime-now;
+    eventCountdownInterval = setInterval(()=>{
+      const now = Date.now();
+      const timeLeft = data.endTime - now;
       
-      if(timeLeft<=0){
-        adminEventActive=false;
-        globalLuckMultiplier=1;
+      if(timeLeft <= 0){
+        adminEventActive = false;
+        globalLuckMultiplier = 1;
         banner.style.display="none";
-        eventStatus.innerText="イベント停止中";
+        eventStatus.innerText = "イベント停止中";
         clearInterval(eventCountdownInterval);
         db.ref("globalEvent").set({active:false});
         showToast("⏰ 管理者イベントが終了しました", "info");
       } else {
-        const minutes=Math.floor(timeLeft/60000);
-        const seconds=Math.floor((timeLeft%60000)/1000);
-        countdown.innerHTML=`⏰ ${minutes}分${seconds}秒`;
-        eventStatus.innerHTML=`🔥 イベント開催中`;
+        const minutes = Math.floor(timeLeft / 60000);
+        const seconds = Math.floor((timeLeft % 60000) / 1000);
+        eventStatus.innerHTML = `🔥 イベント開催中<br>⏰ ${minutes}分${seconds}秒`;
       }
     }, 1000);
     
   } else {
-    adminEventActive=false;
-    globalLuckMultiplier=1;
+    adminEventActive = false;
+    globalLuckMultiplier = 1;
     banner.style.display="none";
     eventStatus.innerText="イベント停止中";
     clearInterval(eventCountdownInterval);
