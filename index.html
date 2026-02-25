@@ -183,6 +183,34 @@ const db = firebase.database();
 キャッシュ倍率 x<span id="multiplier">1</span><br>
 <button id="upgradeBtn" onclick="upgradeBase()">リバース（お金リセット）</button>
 <button onclick="resetGame()" style="background:red;color:white;">リセット</button>
+
+<div id="tradePanel" style="
+position:fixed;
+right:20px;
+top:80px;
+width:320px;
+background:#222;
+color:white;
+padding:15px;
+border-radius:12px;
+box-shadow:0 0 15px #000;
+z-index:999;
+">
+
+<h3>🔄 キャラ交換</h3>
+
+<input id="tradeTargetId" placeholder="相手プレイヤーID" style="width:100%;margin-bottom:8px;">
+
+<div id="myTradeChars" style="max-height:120px;overflow-y:auto;margin-bottom:8px;"></div>
+
+<button onclick="sendTradeRequest()" style="width:100%;margin-bottom:6px;">交換リクエスト送信</button>
+
+<hr>
+
+<div id="incomingTrades"></div>
+
+</div>
+
 <div id="adminPanel" style="
 display:none;
 position:absolute;
@@ -744,6 +772,143 @@ db.ref("trades").on("child_added", snapshot=>{
 
 });
 
+function completeTrade(tradeId, trade){
+
+  db.ref().transaction(data=>{
+    if(!data) return data;
+
+    const fromBase = data.players[trade.from]?.base;
+    const toBase   = data.players[trade.to]?.base;
+
+    if(!fromBase || !toBase) return;
+
+    const fromChar = fromBase[trade.fromCharIndex];
+    const toChar   = toBase[trade.toCharIndex];
+
+    if(!fromChar || !toChar) return;
+
+    fromBase[trade.fromCharIndex] = toChar;
+    toBase[trade.toCharIndex] = fromChar;
+
+    data.trades[tradeId].status = "completed";
+
+    return data;
+  });
+
+}
+
+let selectedTradeCharIndex = null;
+
+function renderTradeChars(){
+
+  const container = document.getElementById("myTradeChars");
+  container.innerHTML = "";
+
+  base.forEach((char,index)=>{
+    const div = document.createElement("div");
+    div.textContent = char.name + " (Lv"+char.level+")";
+    div.style.cursor = "pointer";
+    div.style.padding = "4px";
+    div.style.border = "1px solid #555";
+    div.style.marginBottom = "4px";
+
+    div.onclick = ()=>{
+      selectedTradeCharIndex = index;
+      renderTradeChars();
+    };
+
+    if(index === selectedTradeCharIndex){
+      div.style.background = "orange";
+    }
+
+    container.appendChild(div);
+  });
+
+}
+function sendTradeRequest(){
+
+  const targetId = document.getElementById("tradeTargetId").value;
+
+  if(!targetId || selectedTradeCharIndex===null){
+    alert("相手IDとキャラを選択してください");
+    return;
+  }
+
+  const tradeRef = db.ref("trades").push();
+
+  tradeRef.set({
+    from: playerId,
+    to: targetId,
+    fromCharIndex: selectedTradeCharIndex,
+    toCharIndex: null,
+    fromReady: false,
+    toReady: false,
+    status: "pending",
+    timestamp: Date.now()
+  });
+
+  alert("交換リクエスト送信！");
+}
+db.ref("trades").on("child_added", snapshot=>{
+
+  const tradeId = snapshot.key;
+
+  db.ref("trades/"+tradeId).on("value", snap=>{
+
+    const trade = snap.val();
+    if(!trade) return;
+    if(trade.status !== "pending") return;
+
+    if(trade.to === playerId){
+      showIncomingTrade(tradeId, trade);
+    }
+
+    if(trade.fromReady && trade.toReady){
+      completeTrade(tradeId, trade);
+    }
+
+  });
+
+});
+function showIncomingTrade(tradeId, trade){
+
+  const container = document.getElementById("incomingTrades");
+  container.innerHTML = "";
+
+  const div = document.createElement("div");
+  div.style.border="1px solid red";
+  div.style.padding="6px";
+  div.style.marginBottom="6px";
+
+  div.innerHTML = `
+    <div>📩 ${trade.from} から交換申請</div>
+    <div>あなたのキャラを選択:</div>
+  `;
+
+  base.forEach((char,index)=>{
+    const btn = document.createElement("button");
+    btn.textContent = char.name;
+
+    btn.onclick = ()=>{
+      db.ref("trades/"+tradeId).update({
+        toCharIndex:index
+      });
+    };
+
+    div.appendChild(btn);
+  });
+
+  const readyBtn = document.createElement("button");
+  readyBtn.textContent = "承認";
+  readyBtn.onclick = ()=>{
+    db.ref("trades/"+tradeId).update({toReady:true});
+  };
+
+  div.appendChild(document.createElement("br"));
+  div.appendChild(readyBtn);
+
+  container.appendChild(div);
+}
 function completeTrade(tradeId, trade){
 
   db.ref().transaction(data=>{
