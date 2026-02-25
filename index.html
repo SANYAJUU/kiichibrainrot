@@ -897,23 +897,19 @@ function renderMyCharList(){
   });
 }
 
-function postTrade(){
-  if(selectedMyChar === null){ showNotification("⚠️ キャラを選択してください！", "error", 2000); return; }
-  const char = base[selectedMyChar];
-  const message = document.getElementById("tradeMessage").value;
-  db.ref("publicTrades").push({owner: playerId, charIndex: selectedMyChar, charData: JSON.stringify(char), message: message, status: "open", timestamp: Date.now()});
-  showToast("✅ キャラを出品しました！", "success");
-  document.getElementById("tradeMessage").value = "";
-  selectedMyChar = null;
-  renderMyCharList();
-}
-
 function renderIncomingRequests(){
   const container = document.getElementById("incomingRequests");
   container.innerHTML = "";
   db.ref("publicTrades").once("value").then(snap=>{
     const trades = snap.val();
     if(!trades) return;
+    
+    // playerId のオーナーが出品中のトレードを数える
+    let myActiveListings = 0;
+    Object.values(trades).forEach(trade=>{
+      if(trade.owner === playerId && trade.status === "open") myActiveListings++;
+    });
+    
     let found = false;
     Object.entries(trades).forEach(([id, trade])=>{
       if(trade.status !== "pending" || trade.owner !== playerId) return;
@@ -939,6 +935,35 @@ function renderIncomingRequests(){
       container.appendChild(div);
     });
     if(!found) container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>申請はありません</div>";
+  });
+}
+
+function postTrade(){
+  if(selectedMyChar === null){ showNotification("⚠️ キャラを選択してください！", "error", 2000); return; }
+  
+  // 出品中のトレードを数える
+  db.ref("publicTrades").once("value").then(snap=>{
+    const trades = snap.val();
+    let myActiveListings = 0;
+    if(trades){
+      Object.values(trades).forEach(trade=>{
+        if(trade.owner === playerId && trade.status === "open") myActiveListings++;
+      });
+    }
+    
+    // 既に2個出品中なら拒否
+    if(myActiveListings >= 2){
+      showNotification("⚠️ 同時に出品できるのは2個までです！", "error", 2000);
+      return;
+    }
+    
+    const char = base[selectedMyChar];
+    const message = document.getElementById("tradeMessage").value;
+    db.ref("publicTrades").push({owner: playerId, charIndex: selectedMyChar, charData: JSON.stringify(char), charName: getCharName(char), message: message, status: "open", timestamp: Date.now()});
+    showToast("✅ キャラを出品しました！", "success");
+    document.getElementById("tradeMessage").value = "";
+    selectedMyChar = null;
+    renderMyCharList();
   });
 }
 
