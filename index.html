@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>ブレインロット（2）</title>
+
+    <style>
+/* 既存 walker 用 */
+.walker{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  width:120px;
+  padding:8px;
+  border-radius:8px;
+  text-align:center;
+  font-weight:bold;
+  cursor:pointer;
+  animation: float 1s ease-in-out infinite alternate;
+}
+
+/* 浮遊アニメーション */
+@keyframes float {
+  0% { transform: translateX(-50%) translateY(0px); }
+  50% { transform: translateX(-50%) translateY(3px); }
+  100% { transform: translateX(-50%) translateY(0px); }
+}
+
+/* 同時変異用 点滅光るアニメーション */
+@keyframes glowBlink {
+  0%, 100% { box-shadow: 0 0 10px magenta, 0 0 20px orange, 0 0 30px aqua; }
+  50% { box-shadow: 0 0 20px magenta, 0 0 40px orange, 0 0 60px aqua; }
+}
+.glow {
+  animation: float 1s ease-in-out infinite alternate,
+             glowBlink 0.8s ease-in-out infinite alternate;
+}
+</style>
+
+<style>
+body{
+  margin:0;
+  background:#111;
+  color:white;
+  font-family:sans-serif;
+  overflow:hidden;
+}
+
+#ui{
+  position:absolute;
+  top:10px;
+  left:10px;
+  z-index:10;
+}
+
+#carpet{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  width:200px;
+  height:2000px;
+  background:linear-gradient(#700,#900);
+}
+
+#base{
+  position:absolute;
+  left:0;
+  bottom:0;
+  width:calc(50% - 100px);
+  height:400px;
+  border-top:3px solid cyan;
+  border-right:3px solid cyan;
+  padding:10px;
+  box-sizing:border-box;
+  overflow-y:auto;
+  display:grid;
+  grid-template-columns:repeat(auto-fill, 110px);
+  gap:5px;
+  background:#0a0f1a;
+}
+
+#fuseArea{
+  position:absolute;
+  right:40px;
+  top:120px;
+  width:260px;
+  height:350px;
+  border:4px solid white;
+  background:#222;
+  display:flex;
+  flex-direction:column;
+  padding:10px;
+}
+
+#fuseSlots{
+  flex:1;
+  overflow-y:auto;
+}
+
+/* ===== キャラ共通サイズ ===== */
+.char, .walker{
+  width:100px;
+  height:80px;
+  padding:6px;
+  font-size:12px;
+  border-radius:8px;
+  text-align:center;
+  font-weight:bold;
+  cursor:pointer;
+  box-sizing:border-box;
+}
+.walker{
+  position:absolute;
+  left:50%;
+  transform:translateX(-50%);
+  animation: float 1s ease-in-out infinite alternate;
+}
+
+@keyframes float {
+  0% { transform: translateX(-50%) translateY(0px); }
+  50% { transform: translateX(-50%) translateY(3px); }
+  100% { transform: translateX(-50%) translateY(0px); }
+}
+
+button{cursor:pointer;margin-top:5px;}
+@keyframes pulse{
+  from { transform:scale(1); box-shadow:0 0 10px gold; }
+  to   { transform:scale(1.08); box-shadow:0 0 25px orange; }
+}
+
+.char div,
+.walker div{
+  line-height:1.1;
+}
+.rarityBadge{
+  position:absolute;
+  top:4px;
+  right:6px;
+  pointer-events:none;
+}
+
+.rarityText{
+  padding:2px 6px;
+  border-radius:6px;
+  font-size:10px;
+  font-weight:bold;
+  display:inline-block;
+}
+
+.char{
+  position:relative;
+}
+</style>
+</head>
+<body>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+
+<script>
+const firebaseConfig = {
+  apiKey: "ここにAPIキー",
+  authDomain: "あなたのID.firebaseapp.com",
+  databaseURL: "https://brainrot-3e022-default-rtdb.firebaseio.com/",
+  projectId: "あなたのID",
+  storageBucket: "あなたのID.appspot.com",
+  messagingSenderId: "数字",
+  appId: "数字"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+</script>
+
+<div id="ui">
+<div id="codeBox" style="margin:10px;">
+  <input id="codeInput" placeholder="コード入力">
+  <button onclick="useCode()">使用</button>
+</div>
+キャッシュ <span id="money">0</span><br>
+リバース <span id="level">1</span><br>
+容量 <span id="cap">10</span><br>
+キャッシュ倍率 x<span id="multiplier">1</span><br>
+<button id="upgradeBtn" onclick="upgradeBase()">リバース（お金リセット）</button>
+<button onclick="resetGame()" style="background:red;color:white;">リセット</button>
+<div id="adminPanel" style="
+display:none;
+position:absolute;
+right:5px;
+top:120px;
+width:260px;
+background:#111;
+border:3px solid gold;
+padding:15px;
+z-index:1000;
+cursor:move;
+">
+<h3 style="color:gold;">👑 管理者パネル</h3>
+
+<button onclick="startAdminEvent()">管理者イベント開始</button>
+<button onclick="stopAdminEvent()">イベント終了</button>
+
+<div id="eventStatus" style="margin-top:10px;color:lime;">
+イベント停止中
+</div>
+
+</div>
+</div>
+
+<div id="carpet"></div>
+
+<div id="fuseArea">
+<h3>マシーン</h3>
+    <div>合計収益: <span id="fuseTotal">0</span>/s</div>
+<div id="fuseSlots"></div>
+<button onclick="fuse()">合成</button>
+</div>
+
+<div id="base"></div>
+
+<script>
+let playerId = localStorage.getItem("playerId");
+
+if(!playerId){
+  playerId = "player_" + Math.random().toString(36).substr(2,9);
+  localStorage.setItem("playerId", playerId);
+}
+let adminEventActive = false;
+let globalLuckMultiplier = 1;
+
+let isAdmin = false;
+let usedCodes = JSON.parse(localStorage.getItem("usedCodes")||"[]");
+    
+const rarities = [
+ {name:"COMMON", color:"#777", rate:1000, chance:49},
+ {name:"RARE", color:"blue", rate:5000, chance:26},
+ {name:"EPIC", color:"purple", rate:20000, chance:14},
+ {name:"LEGENDARY", color:"gold", rate:80000, chance:7},
+ {name:"MYTHIC", color:"orange", rate:200000, chance:3},
+ {name:"GOD", color:"rainbow", rate:1000000, chance:0.8},
+ {name:"SECRET", color:"black", rate:0, chance:0.2}
+];
+
+const attributes = [
+  {name:"Default", multiplier:1, chance:85, color:"#444"},
+
+  {name:"Gold", multiplier:1.5, chance:5, color:"gold"},
+  {name:"Diamond", multiplier:3, chance:3, color:"cyan"},
+  {name:"Galaxy", multiplier:5, chance:2, color:"magenta"},
+  {name:"Dreamy", multiplier:7, chance:1.5, color:"pink"},
+  {name:"Lava", multiplier:8, chance:1, color:"red"},
+  {name:"Aqua", multiplier:9, chance:0.8, color:"blue"},
+  {name:"Rainbow", multiplier:10, chance:0.5, color:"orange"},
+  {name:"Netherite", multiplier:10, chance:0.4, color:"gray"},
+  {name:"Amethyst", multiplier:10.5, chance:0.3, color:"purple"},
+  {name:"Toxic", multiplier:11, chance:0.3, color:"lime"},
+  {name:"Ultimate", multiplier:12, chance:0.2, color:"white"}
+];
+
+const mutations = [
+  {name:"Lightning", bonus:2, icon:"⚡"},
+  {name:"Ice", bonus:2, icon:"🧊"},
+  {name:"Nether", bonus:2.5, icon:"🔥"},
+  {name:"End", bonus:3, icon:"🌌"},
+  {name:"Enchant", bonus:3, icon:"✨"},
+  {name:"Inmu", bonus:4, icon:"☠"}
+];
+
+const secretCharacters = [
+ {character:"Piccione Macchina", rate:500000},
+ {character:"Pakrahmatmamat", rate:600000},
+ {character:"Orcalero Orcala", rate:1000000},
+ {character:"Pot Hotspot", rate:2000000},
+ {character:"Nooo My Hotspot", rate:2500000},
+ {character:"Garamaramadungdung", rate:3000000},
+ {character:"Il Sacro Cabrospaghetti", rate:4000000},
+ {character:"La Grande Combinacion", rate:5000000},
+ {character:"Yess My Hotspot", rate:5500000},
+ {character:"67", rate:6700000},
+ {character:"69", rate:13800000},
+ {character:"Ketupat Kepat Prekupat", rate:10000000},
+ {character:"Nooo My Bicicleteira", rate:13500000},
+ {character:"W or L", rate:13000000},
+ {character:"Lirili Ralilu", rate:17000000},
+ {character:"La Esok Sekolah", rate:20000000},
+ {character:"Chimpanzini Kingini", rate:25000000},
+ {character:"Strawberry Elephant", rate:30000000},
+ {character:"Klombo", rate:32000000},
+ {character:"Gorgonzilla", rate:57000000},
+ {character:"Spaghetti Tualetti", rate:40000000},
+ {character:"Cannelloni Dragoni", rate:50000000},
+ {character:"La Crazy Combinacion", rate:60000000},
+ {character:"Chocone Dragone", rate:80000000},
+ {character:"Gigalitraktos Spidorobos", rate:75000000},
+ {character:"Tiramisubmarini", rate:90000000},
+ {character:"Garbagzilla", rate:100000000},
+ {character:"Cannone Maledettone", rate:115000000},
+ {character:"SKIBIDI TOILET", rate:350000000},
+ {character:"YAJUU SENPAI", rate:810000000}
+];
+
+const fuseTable = [
+  { min:0, max:10000, results:[
+    {type:"rarity", value:"COMMON", chance:25},
+    {type:"rarity", value:"RARE", chance:35},
+    {type:"rarity", value:"EPIC", chance:40}
+  ]},
+  { min:10000, max:50000, results:[
+    {type:"rarity", value:"COMMON", chance:20},
+    {type:"rarity", value:"RARE", chance:25},
+    {type:"rarity", value:"EPIC", chance:55}
+  ]},
+  { min:50000, max:350000, results:[
+    {type:"rarity", value:"RARE", chance:35},
+    {type:"rarity", value:"EPIC", chance:50},
+    {type:"rarity", value:"LEGENDARY", chance:25}
+  ]},
+  { min:350000, max:1000000, results:[
+    {type:"rarity", value:"EPIC", chance:25},
+    {type:"rarity", value:"LEGENDARY", chance:40},
+    {type:"rarity", value:"MYTHIC", chance:25},
+    {type:"rarity", value:"GOD", chance:10}
+  ]},
+  { min:1000000, max:2000000, results:[
+    {type:"rarity", value:"MYTHIC", chance:35},
+    {type:"rarity", value:"GOD", chance:55},
+    {type:"secret", value:"Pot Hotspot", chance:10}
+  ]},
+  { min:2000000, max:5000000, results:[
+    {type:"rarity", value:"GOD", chance:25},
+    {type:"secret", value:"Pot Hotspot", chance:35},
+    {type:"secret", value:"Garamaramadungdung", chance:25},
+    {type:"secret", value:"La Grande Combinacion", chance:15}
+  ]},
+  { min:5000000, max:10000000, results:[
+    {type:"secret", value:"Pot Hotspot", chance:25},
+    {type:"secret", value:"67", chance:35},
+    {type:"secret", value:"69", chance:30},
+    {type:"secret", value:"Lirili Ralilu", chance:10}
+  ]},
+  { min:10000000, max:15000000, results:[
+    {type:"secret", value:"67", chance:30},
+    {type:"secret", value:"69", chance:25},
+    {type:"secret", value:"Lirili Ralilu", chance:30},
+    {type:"secret", value:"La Esok Sekolah", chance:15}
+  ]},
+  { min:15000000, max:25000000, results:[
+    {type:"secret", value:"Lirili Ralilu", chance:35},
+    {type:"secret", value:"La Esok Sekolah", chance:45},
+    {type:"secret", value:"Chimpanzini Kingini", chance:15},
+    {type:"secret", value:"Gorgonzilla", chance:5}
+  ]},
+  { min:25000000, max:35000000, results:[
+    {type:"secret", value:"La Esok Sekolah", chance:35},
+    {type:"secret", value:"Chimpanzini Kingini", chance:40},
+    {type:"secret", value:"Spaghetti Tualetti", chance:18},
+    {type:"secret", value:"Gorgonzilla", chance:10},
+    {type:"secret", value:"La Crazy Combinacion", chance:2}
+  ]},
+  { min:35000000, max:45000000, results:[
+    {type:"secret", value:"Chimpanzini Kingini", chance:45},
+    {type:"secret", value:"Spaghetti Tualetti", chance:35},
+    {type:"secret", value:"Gorgonzilla", chance:15},
+    {type:"secret", value:"La Crazy Combinacion", chance:5}
+  ]},
+  { min:45000000, max:65000000, results:[
+    {type:"secret", value:"Spaghetti Tualetti", chance:45},
+    {type:"secret", value:"Gorgonzilla", chance:25},
+    {type:"secret", value:"La Crazy Combinacion", chance:25},
+    {type:"secret", value:"Gigalitraktos Spidorobos", chance:5}
+  ]},
+  { min:65000000, max:100000000, results:[
+    {type:"secret", value:"Spaghetti Tualetti", chance:35},
+    {type:"secret", value:"Gorgonzilla", chance:25},
+    {type:"secret", value:"La Crazy Combinacion", chance:20},
+    {type:"secret", value:"Gigalitraktos Spidorobos", chance:19},
+    {type:"secret", value:"YAJUU SENPAI", chance:1}
+  ]},
+  { min:100000000, max:300000000, results:[
+    {type:"secret", value:"Gorgonzilla", chance:45},
+    {type:"secret", value:"La Crazy Combinacion", chance:35},
+    {type:"secret", value:"Gigalitraktos Spidorobos", chance:15},
+    {type:"secret", value:"YAJUU SENPAI", chance:5}
+  ]},
+  { min:300000000, max:500000000, results:[
+    {type:"secret", value:"Gorgonzilla", chance:25},
+    {type:"secret", value:"La Crazy Combinacion", chance:40},
+    {type:"secret", value:"Gigalitraktos Spidorobos", chance:25},
+    {type:"secret", value:"YAJUU SENPAI", chance:10}
+  ]},
+  { min:500000000, max:Infinity, results:[
+    {type:"secret", value:"La Crazy Combinacion", chance:45},
+    {type:"secret", value:"Gigalitraktos Spidorobos", chance:35},
+    {type:"secret", value:"YAJUU SENPAI", chance:20}
+  ]}
+];
+
+let money=0;
+let baseLevel=1;
+let capacity=10;
+let incomeMultiplier=1;
+let base=[];
+let fuseList=[];
+let spawnInterval;
+let dragFromIndex=null;
+
+/* ===== 変異倍率 ===== */
+const mutationMultiplierElectric = 3;
+const mutationMultiplierIce = 2;
+
+/* ===== 数字省略 ===== */
+function format(num){
+ if(num>=1e42) return (num/1e42).toFixed(1)+"TD";
+ if(num>=1e39) return (num/1e39).toFixed(1)+"DD";
+ if(num>=1e36) return (num/1e36).toFixed(1)+"UD";
+ if(num>=1e33) return (num/1e33).toFixed(1)+"DC";
+ if(num>=1e30) return (num/1e30).toFixed(1)+"NO";
+ if(num>=1e27) return (num/1e27).toFixed(1)+"OC";
+ if(num>=1e24) return (num/1e24).toFixed(1)+"SP";
+ if(num>=1e21) return (num/1e21).toFixed(1)+"SX";
+ if(num>=1e18) return (num/1e18).toFixed(1)+"QI";
+ if(num>=1e15) return (num/1e15).toFixed(1)+"QA";
+ if(num>=1e12) return (num/1e12).toFixed(1)+"T";
+ if(num>=1e9) return (num/1e9).toFixed(1)+"B";
+ if(num>=1e6) return (num/1e6).toFixed(1)+"M";
+ if(num>=1e3) return (num/1e3).toFixed(1)+"K";
+ return Math.floor(num);
+}
+
+/* ===== スロット保証 ===== */
+function ensureBaseSlots(){
+ while(base.length < capacity){
+   base.push(null);
+ }
+ if(base.length > capacity){
+   base = base.slice(0, capacity);
+ }
+}
+
+/* ===== UI更新 ===== */
+function updateUI(){
+ const cost = Math.floor(50000*Math.pow(4, baseLevel-1));
+ document.getElementById("money").innerText = format(money);
+ document.getElementById("level").innerText = baseLevel;
+ document.getElementById("cap").innerText = capacity;
+ document.getElementById("multiplier").innerText = incomeMultiplier.toFixed(1);
+ document.getElementById("upgradeBtn").innerText = "リバース（お金リセット） (" + format(cost) + ")";
+}
+
+/* ===== リセット ===== */
+function resetGame(){
+ if(!confirm("本当にリセットしますか？データは消えます。")) return;
+ localStorage.removeItem("mergeSave");
+ money=0; baseLevel=1; capacity=10; incomeMultiplier=1; base=[]; fuseList=[];
+ ensureBaseSlots(); renderBase(); renderFuse(); updateUI();
+}
+
+
+
+/* ===== 抽選 ===== */
+function getRandomRarity(){
+
+  const adjusted = rarities.map(r=>{
+    return {
+      ...r,
+      chance: r.chance * globalLuckMultiplier
+    };
+  });
+
+  const total = adjusted.reduce((s,r)=>s+r.chance,0);
+  const rand = Math.random()*total;
+
+  let sum=0;
+
+  for(let r of adjusted){
+    sum+=r.chance;
+    if(rand<=sum) return r;
+  }
+}
+
+function spawnWalker(){
+
+  let baseData = getRandomRarity();
+  let data = {...baseData};
+
+  if(baseData.name === "SECRET"){
+    const pick = secretCharacters[Math.floor(Math.random()*secretCharacters.length)];
+    data = { name:"SECRET", character: pick.character, rate: pick.rate, color:"black" };
+  }
+
+  // 属性抽選
+  let totalChance = attributes.reduce((s,a)=>s+a.chance,0);
+  let rand = Math.random()*totalChance;
+  let sum = 0;
+  for(let attr of attributes){
+    sum += attr.chance;
+    if(rand <= sum){
+      data.attribute = attr;
+      break;
+    }
+  }
+
+  // 変異抽選
+  data.mutations = [];
+  if(adminEventActive){
+    mutations.forEach(m=>{ if(Math.random()<0.15) data.mutations.push(m); });
+  }
+
+  // 最終倍率計算
+  let totalMultiplier = data.attribute.multiplier;
+  data.mutations.forEach(m=>totalMultiplier += m.bonus);
+  data.rate = Math.floor(data.rate * totalMultiplier);
+
+  const div = document.createElement("div");
+  div.className = "walker";
+  div.style.background = data.attribute ? data.attribute.color : "#444";
+  div.style.border = "2px solid white";
+
+  let attributeName = data.attribute ? data.attribute.name : "Default";
+  let rarityText = data.name === "SECRET" ? data.character : data.name;
+
+  // レア度バッジ
+  const raritySpan = document.createElement("span");
+  raritySpan.innerText = rarityText;
+  switch(data.name){
+    case "COMMON": raritySpan.style.background="#6b3e1d"; raritySpan.style.color="white"; break;
+    case "RARE": raritySpan.style.background="#4dd0ff"; raritySpan.style.color="#003344"; break;
+    case "EPIC": raritySpan.style.background="purple"; raritySpan.style.color="#ffccff"; break;
+    case "LEGENDARY": raritySpan.style.background="yellow"; raritySpan.style.color="#b36b00"; break;
+    case "MYTHIC": raritySpan.style.background="gold"; raritySpan.style.color="#5a3b00"; break;
+    case "GOD": raritySpan.style.background="gray"; raritySpan.style.color="cyan"; break;
+    case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
+  }
+  raritySpan.style.padding="2px 6px";
+  raritySpan.style.borderRadius="6px";
+  raritySpan.style.fontSize="10px";
+  raritySpan.style.display="inline-block";
+  raritySpan.style.marginTop="2px";
+
+ let mutationIcons = "";
+if(data.mutations && data.mutations.length > 0){
+  mutationIcons = data.mutations.map(m=>m.icon).join("");
+}
+  div.innerHTML =
+    "<div>[" + attributeName + "]</div>" +
+    "<div>" + raritySpan.outerHTML + "</div>" +
+    "<div>+" + format(data.rate) + "/s</div>";
+
+  div.style.top = "-100px";
+  document.body.appendChild(div);
+
+  let pos=-100;
+  const move = setInterval(()=>{
+    pos += 1;
+    div.style.top = pos + "px";
+    if(pos>window.innerHeight){
+      div.remove();
+      clearInterval(move);
+    }
+  },30);
+
+  div.onclick = ()=>{
+    const emptyIndex = base.findIndex(s=>s===null);
+    if(emptyIndex!==-1){
+      base[emptyIndex]=data;
+      renderBase();
+      div.remove();
+      clearInterval(move);
+    }
+  };
+
+  data.baseRate = data.rate;
+}
+
+
+/* ===== 基地描画 ===== */
+function renderBase(){
+  const baseDiv = document.getElementById("base");
+  baseDiv.innerHTML = "";
+
+  base.forEach((c,i)=>{
+    const div = document.createElement("div");
+    div.className = "char";
+
+    if(c){
+      div.draggable = true;
+      div.style.background = c.attribute ? c.attribute.color : "#444";
+      div.style.border = "1px solid #333";
+
+      // 変異アイコン
+      let mutationIcons = "";
+      if(c.mutations && c.mutations.length > 0){
+        mutationIcons = c.mutations.map(m=>m.icon).join("");
+      }
+
+      let attributeName = c.attribute ? c.attribute.name : "Default";
+      let rarityText = c.name === "SECRET" ? c.character : c.name;
+
+      // レア度バッジ
+      const raritySpan = document.createElement("span");
+      raritySpan.innerText = rarityText;
+      switch(c.name){
+        case "COMMON": raritySpan.style.background="#6b3e1d"; raritySpan.style.color="white"; break;
+        case "RARE": raritySpan.style.background="#4dd0ff"; raritySpan.style.color="#003344"; break;
+        case "EPIC": raritySpan.style.background="purple"; raritySpan.style.color="#ffccff"; break;
+        case "LEGENDARY": raritySpan.style.background="yellow"; raritySpan.style.color="#b36b00"; break;
+        case "MYTHIC": raritySpan.style.background="gold"; raritySpan.style.color="#5a3b00"; break;
+        case "GOD": raritySpan.style.background="gray"; raritySpan.style.color="cyan"; break;
+        case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
+      }
+      raritySpan.style.padding="2px 6px";
+      raritySpan.style.borderRadius="6px";
+      raritySpan.style.fontSize="10px";
+      raritySpan.style.display="inline-block";
+      raritySpan.style.marginTop="2px";
+
+      // HTML構成: 属性 → レア度 → 変異 → 稼ぐ金額
+      div.innerHTML =
+        "<div>[" + attributeName + "]</div>" +
+        "<div>" + raritySpan.outerHTML + "</div>" +
+        "<div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
+
+      div.onclick = ()=>{
+        if(fuseList.length >= 5) return;
+        fuseList.push(c);
+        base[i] = null;
+        renderBase();
+        renderFuse();
+      };
+
+      div.oncontextmenu = (e)=>{
+        e.preventDefault();
+        base[i] = null;
+        renderBase();
+      };
+
+    } else {
+      div.style.background = "#111";
+      div.style.border = "1px dashed #333";
+    }
+
+    baseDiv.appendChild(div);
+  });
+}
+function playSecretSound(text){
+   const msg = new SpeechSynthesisUtterance(text);
+   msg.lang = "en-US"; // 英語読み
+   msg.pitch = 1.2;
+   msg.rate = 0.9;
+   speechSynthesis.speak(msg);
+}
+
+function startAdminEvent(){
+  if(!isAdmin) return;
+
+  db.ref("globalEvent").set({
+    active: true,
+    luck: 67,
+    startTime: Date.now()
+  });
+}
+
+function stopAdminEvent(){
+  if(!isAdmin) return;
+
+  db.ref("globalEvent").set({
+    active:false
+  });
+}
+
+function useCode(){
+  const input = document.getElementById("codeInput");
+  const code = input.value.trim();
+  input.value = "";
+
+  if(!code) return;
+
+  // 管理者は制限なし
+  if(!isAdmin && usedCodes.includes(code)){
+    alert("このコードは既に使用済みです！");
+    return;
+  }
+
+  // ===== 管理者コード =====
+  if(code === "670402"){
+  isAdmin = true;
+  document.getElementById("adminPanel").style.display = "block";
+  alert("管理者モード起動");
+  return;
+}
+
+  // ===== イベント発生 =====
+  if(code === "810777"){
+    alert("5分間の4倍ラック上昇が発動されました。");
+    eventBoost();
+  }
+
+  // ===== キャラ配布 =====
+  if(code === "676869"){
+    giveSecretCharacter();
+  }
+
+  if(!isAdmin){
+    usedCodes.push(code);
+    localStorage.setItem("usedCodes",JSON.stringify(usedCodes));
+  }
+}
+
+function eventBoost(){
+  const originalRate = secretChance;
+  secretChance *= 0.8;
+
+  setTimeout(()=>{
+    secretChance = originalRate;
+    alert("イベント終了！");
+  },300000);
+}
+
+function giveSecretCharacter(){
+  const pick = secretCharacters[Math.floor(Math.random()*secretCharacters.length)];
+
+  const newChar = {
+    name:"SECRET",
+    character: pick.character,
+    rate: pick.rate,
+    color:"black"
+  };
+
+  const emptyIndex = base.findIndex(s=>s===null);
+  if(emptyIndex !== -1){
+    base[emptyIndex] = newChar;
+    renderBase();
+    alert("SECRETキャラ獲得！");
+  }else{
+    alert("基地がいっぱいです！");
+  }
+}
+
+/* ===== 合成表示 ===== */
+function renderFuse(){
+  const fuseDiv = document.getElementById("fuseSlots");
+  fuseDiv.innerHTML = "";
+
+  let total = 0;
+
+  // 投入キャラの表示
+  fuseList.forEach((c)=>{
+    total += c.rate;
+    const div = document.createElement("div");
+    div.className = "char";
+    div.style.background = c.attribute ? c.attribute.color : "#444";
+
+    // 変異アイコン
+    let mutationIcons = "";
+    if(c.mutations && c.mutations.length > 0){
+      mutationIcons = c.mutations.map(m=>m.icon).join("");
+    }
+
+    let attributeName = c.attribute ? c.attribute.name : "Default";
+    let rarityText = c.name === "SECRET" ? c.character : c.name;
+
+    // レア度バッジ
+    const raritySpan = document.createElement("span");
+    raritySpan.innerText = rarityText;
+    switch(c.name){
+      case "COMMON": raritySpan.style.background="#6b3e1d"; raritySpan.style.color="white"; break;
+      case "RARE": raritySpan.style.background="#4dd0ff"; raritySpan.style.color="#003344"; break;
+      case "EPIC": raritySpan.style.background="purple"; raritySpan.style.color="#ffccff"; break;
+      case "LEGENDARY": raritySpan.style.background="yellow"; raritySpan.style.color="#b36b00"; break;
+      case "MYTHIC": raritySpan.style.background="gold"; raritySpan.style.color="#5a3b00"; break;
+      case "GOD": raritySpan.style.background="gray"; raritySpan.style.color="cyan"; break;
+      case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
+    }
+    raritySpan.style.padding="2px 6px";
+    raritySpan.style.borderRadius="6px";
+    raritySpan.style.fontSize="10px";
+    raritySpan.style.display="inline-block";
+    raritySpan.style.marginTop="2px";
+
+    // HTML構成: 属性 → レア度 → 変異 → 稼ぐ金額
+    div.innerHTML =
+      "<div>[" + attributeName + "]</div>" +
+      "<div>" + raritySpan.outerHTML + "</div>" +
+      "<div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
+
+    // クリックで基地に戻す
+    div.onclick = ()=>{
+      const emptyIndex = base.findIndex(s=>s===null);
+      if(emptyIndex === -1) return;
+      const index = fuseList.indexOf(c);
+      if(index !== -1) fuseList.splice(index,1);
+      base[emptyIndex] = c;
+      renderBase();
+      renderFuse();
+    };
+
+    fuseDiv.appendChild(div);
+  });
+
+  document.getElementById("fuseTotal").innerText = format(total);
+
+  // 属性抽選・変異抽選表示
+  if(fuseList.length > 0){
+    const totalRate = fuseList.reduce((s,c)=>s+(c.rate||0),0);
+
+    const attrMap = {};
+    fuseList.forEach(c=>{
+      const attrName = c.attribute ? c.attribute.name : "Default";
+      if(!attrMap[attrName]) attrMap[attrName] = 0;
+      attrMap[attrName] += c.rate||0;
+    });
+
+    const infoDiv = document.createElement("div");
+    infoDiv.style.marginTop = "10px";
+    infoDiv.innerHTML = "<hr>属性抽選確率（rate依存）<br>";
+
+    for(const [name, weight] of Object.entries(attrMap)){
+      const percent = Math.round(weight/totalRate*100);
+      infoDiv.innerHTML += name + " : " + percent + "%<br>";
+    }
+
+    // 変異確率表示
+    infoDiv.innerHTML += "<br>変異抽選確率<br>";
+    mutations.forEach(m=>{
+      let mutRate = fuseList.reduce((sum,c)=>sum + ((c.mutations||[]).some(mt=>mt.name===m.name)?c.rate||0:0),0);
+      let chance = 5 + (mutRate/totalRate)*50;
+      infoDiv.innerHTML += m.name + " : " + Math.round(chance) + "%<br>";
+    });
+
+    fuseDiv.appendChild(infoDiv);
+
+    // ★ 合成結果の出現確率表示（修正版：キャラの数に関係なく1回だけ）
+    const totalBaseRate = fuseList.reduce((sum,c)=>sum+(c.baseRate||c.rate),0);
+    const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
+    if(table){
+      const chanceDiv = document.createElement("div");
+      chanceDiv.style.marginTop = "10px";
+      chanceDiv.innerHTML = "<hr><b>合成結果の出現確率</b><br>";
+
+      const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
+
+      table.results.forEach(r=>{
+        let name = r.type === "secret" ? r.value : r.value;
+        let percent = Math.round(r.chance / totalChance * 100);
+        chanceDiv.innerHTML += name + " : " + percent + "%<br>";
+      });
+
+      fuseDiv.appendChild(chanceDiv);
+    }
+  }
+}
+
+function fuse(){
+  // 投入キャラが5体揃っていない場合は何もしない
+  if(fuseList.length !== 5) return;
+
+  // 投入キャラ全てを使用
+  const used = fuseList.splice(0,5);
+
+  // ★ baseRateが無い場合はrateを使う
+  const totalBaseRate = used.reduce((sum,c)=>{
+    return sum + (c.baseRate ? c.baseRate : c.rate);
+  },0);
+
+  const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
+  if(!table){
+    renderFuse(); // 何も合成されないのでUIだけ更新
+    return;
+  }
+
+  const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
+  const rand = Math.random() * totalChance;
+
+  let sum = 0;
+  let chosen = table.results[0];
+
+  for(let r of table.results){
+    sum += r.chance;
+    if(rand <= sum){
+      chosen = r;
+      break;
+    }
+  }
+
+  let newChar;
+
+  if(chosen.type === "rarity"){
+    const rarityData = rarities.find(r => r.name === chosen.value);
+    newChar = {...rarityData};
+    newChar.baseRate = rarityData.rate;
+  }else{
+    const secretData = secretCharacters.find(s => s.character === chosen.value);
+    newChar = {
+      name:"SECRET",
+      character: secretData.character,
+      color:"black",
+      baseRate: secretData.rate
+    };
+  }
+
+  // 属性・変異引き継ぎ（最初のキャラから簡易コピー）
+  const firstChar = used[0];
+  newChar.attribute = firstChar.attribute;
+  newChar.mutations = firstChar.mutations ? [...firstChar.mutations] : [];
+  newChar.rate = Math.floor((newChar.baseRate || newChar.rate) * 
+                            (newChar.attribute ? newChar.attribute.multiplier : 1) + 
+                            newChar.mutations.reduce((s,m)=>s+m.bonus,0));
+
+  // 空きスロットに配置
+  const emptyIndex = base.findIndex(s=>s===null);
+  if(emptyIndex !== -1){
+    base[emptyIndex] = newChar;
+  } else {
+    // 空きが無ければfuseListに戻す
+    fuseList.push(newChar);
+  }
+
+  renderBase();
+  renderFuse();
+}
+
+
+
+/* ===== 強化（リバース） ===== */
+function upgradeBase(){
+ const cost=Math.floor(50000*Math.pow(4,baseLevel-1));
+ if(money>=cost){
+   money=0; // ★お金リセット
+   baseLevel++;
+   capacity+=2;
+   incomeMultiplier+=0.5;
+   ensureBaseSlots();
+   renderBase();
+   updateUI();
+ }
+}
+
+// ===== 管理者パネル ドラッグ機能 =====
+const adminPanel = document.getElementById("adminPanel");
+
+let isDragging = false;
+let offsetX, offsetY;
+
+adminPanel.addEventListener("mousedown", (e)=>{
+  isDragging = true;
+
+  offsetX = e.clientX - adminPanel.offsetLeft;
+  offsetY = e.clientY - adminPanel.offsetTop;
+
+  adminPanel.style.right = "auto"; // right固定解除
+});
+
+document.addEventListener("mousemove", (e)=>{
+  if(!isDragging) return;
+
+  adminPanel.style.left = (e.clientX - offsetX) + "px";
+  adminPanel.style.top  = (e.clientY - offsetY) + "px";
+});
+
+document.addEventListener("mouseup", ()=>{
+  isDragging = false;
+});
+
+/* ===== 収益 ===== */
+setInterval(()=>{
+ let income = base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0);
+ money += income * incomeMultiplier;
+ updateUI();
+},1000);
+
+/* ===== セーブ ===== */
+function saveGame(){
+  db.ref("players/" + playerId).set({
+    money,
+    baseLevel,
+    capacity,
+    incomeMultiplier,
+    base,
+    fuseList,
+    lastSave: Date.now()
+  });
+}
+setInterval(saveGame,2000);
+
+/* ===== ロード ===== */
+function loadGame(){
+  db.ref("players/" + playerId).once("value").then(snapshot=>{
+    const data = snapshot.val();
+    if(!data) return;
+
+    money = data.money || 0;
+    baseLevel = data.baseLevel || 1;
+    capacity = data.capacity || 10;
+    incomeMultiplier = data.incomeMultiplier || 1;
+    base = data.base || [];
+    fuseList = data.fuseList || [];
+
+    ensureBaseSlots();
+    renderBase();
+    renderFuse();
+    updateUI();
+  });
+}
+
+/* ===== タブ監視 ===== */
+function startSpawn(){ spawnInterval=setInterval(spawnWalker,3000); }
+function stopSpawn(){ clearInterval(spawnInterval); }
+document.addEventListener("visibilitychange",()=>{ document.hidden ? stopSpawn() : startSpawn(); });
+
+/* ===== 初期化 ===== */
+loadGame();
+ensureBaseSlots();
+renderBase();
+startSpawn();
+updateUI();
+
+db.ref("globalEvent").on("value", snapshot=>{
+  const data = snapshot.val();
+  if(data && data.active){
+    adminEventActive = true;
+    globalLuckMultiplier = data.luck;
+    document.getElementById("adminEventBanner").style.display="block";
+    document.getElementById("eventStatus").innerText="🔥 イベント開催中";
+  }else{
+    adminEventActive = false;
+    globalLuckMultiplier = 1;
+    document.getElementById("adminEventBanner").style.display="none";
+    document.getElementById("eventStatus").innerText="イベント停止中";
+  }
+});
+</script>
+<div id="adminEventBanner" style="
+display:none;
+position:fixed;
+right:20px;
+bottom:20px;
+background:linear-gradient(45deg,gold,orange);
+color:black;
+font-weight:bold;
+padding:12px 20px;
+border-radius:10px;
+box-shadow:0 0 15px gold;
+z-index:2000;
+animation:pulse 1s infinite alternate;
+">
+👑 管理者イベント発動中
+
+
+</div>
+
+
+</body>
+</html>
