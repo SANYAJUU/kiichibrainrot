@@ -818,13 +818,18 @@ function renderFuse(){
 function fuse(){
   if(fuseList.length !== 5) { showNotification(`⚠️ 5体必要です！（現在 ${fuseList.length}/5）`, "error", 2000); return; }
   const used = fuseList.splice(0,5);
-  const totalBaseRate = used.reduce((sum,c)=>sum + (c.baseRate ? c.baseRate : c.rate),0);
+  
+  // ★ baseRate（属性・変異なしの稼ぎ額）の合計で判定
+  const totalBaseRate = used.reduce((sum,c)=>sum + (c.baseRate || c.rate),0);
+  
   const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
   if(!table){ renderFuse(); return; }
+  
   const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
   const rand = Math.random() * totalChance;
   let sum = 0, chosen = table.results[0];
   for(let r of table.results){ sum += r.chance; if(rand <= sum){ chosen = r; break; }}
+  
   let newChar;
   if(chosen.type === "rarity"){
     const rarityData = rarities.find(r => r.name === chosen.value);
@@ -834,16 +839,21 @@ function fuse(){
     const secretData = secretCharacters.find(s => s.character === chosen.value);
     newChar = {name:"SECRET", character: secretData.character, color:"black", baseRate: secretData.rate};
   }
+  
   const firstChar = used[0];
   newChar.attribute = firstChar.attribute;
   newChar.mutations = firstChar.mutations ? [...firstChar.mutations] : [];
-  newChar.rate = Math.floor((newChar.baseRate || newChar.rate) * (newChar.attribute ? newChar.attribute.multiplier : 1) + newChar.mutations.reduce((s,m)=>s+m.bonus,0));
+  
+  // ★ 新しいキャラの rate を計算（baseRate に属性と変異の倍率を適用）
+  let totalMultiplier = newChar.attribute ? newChar.attribute.multiplier : 1;
+  newChar.mutations.forEach(m => totalMultiplier += m.bonus);
+  newChar.rate = Math.floor(newChar.baseRate * totalMultiplier);
+  
   const emptyIndex = base.findIndex(s=>s===null);
   if(emptyIndex !== -1){ base[emptyIndex] = newChar; } else { fuseList.push(newChar); }
   renderBase(); renderFuse();
   showToast(`✨ ${getCharName(newChar)} が生成されました！`, "success");
 }
-
 function upgradeBase(){
   const cost=Math.floor(50000*Math.pow(4,baseLevel-1));
   if(money>=cost){ money=0; baseLevel++; capacity+=1; incomeMultiplier+=0.5; ensureBaseSlots(); renderBase(); updateUI(); showToast("📈 リバースレベルが上がりました！", "success"); }
