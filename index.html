@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>ブレインロット（2）</title>
+<title>KiichiBrainrot</title>
 <style>
 /* 既存 walker 用 */
 .walker{
@@ -18,14 +18,12 @@
   animation: float 1s ease-in-out infinite alternate;
 }
 
-/* 浮遊アニメーション */
 @keyframes float {
   0% { transform: translateX(-50%) translateY(0px); }
   50% { transform: translateX(-50%) translateY(3px); }
   100% { transform: translateX(-50%) translateY(0px); }
 }
 
-/* 同時変異用 点滅光るアニメーション */
 @keyframes glowBlink {
   0%, 100% { box-shadow: 0 0 10px magenta, 0 0 20px orange, 0 0 30px aqua; }
   50% { box-shadow: 0 0 20px magenta, 0 0 40px orange, 0 0 60px aqua; }
@@ -49,8 +47,17 @@ body{
   left:10px;
   z-index:10;
   max-width:300px;
-  max-height:300px;
+  max-height:180px;
   overflow-y:auto;
+}
+
+#ui h3 {
+  display:none;
+}
+
+#ui div {
+  font-size:12px;
+  margin:2px 0;
 }
 
 #carpet{
@@ -66,8 +73,8 @@ body{
   position:absolute;
   left:0;
   bottom:0;
-  width:calc(50% - 100px);
-  height:400px;
+  width:calc(45% - 80px);
+  height:300px;
   border-top:3px solid cyan;
   border-right:3px solid cyan;
   padding:10px;
@@ -79,7 +86,6 @@ body{
   background:#0a0f1a;
 }
 
-/* ===== キャラ共通サイズ ===== */
 .char, .walker{
   width:100px;
   height:80px;
@@ -99,12 +105,7 @@ body{
   animation: float 1s ease-in-out infinite alternate;
 }
 
-button{cursor:pointer;margin-top:5px;}
-
-@keyframes pulse{
-  from { transform:scale(1); box-shadow:0 0 10px gold; }
-  to { transform:scale(1.08); box-shadow:0 0 25px orange; }
-}
+button{cursor:pointer;}
 
 .char div, .walker div{
   line-height:1.1;
@@ -114,7 +115,25 @@ button{cursor:pointer;margin-top:5px;}
   position:relative;
 }
 
-/* ===== 右上パネル（キャラ交換）===== */
+#notificationPanel {
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:rgba(0,0,0,0.95);
+  color:white;
+  padding:20px 30px;
+  border-radius:15px;
+  border:2px solid #4CAF50;
+  box-shadow:0 0 30px rgba(76,175,80,0.5);
+  z-index:5000;
+  display:none;
+  text-align:center;
+  font-size:16px;
+  font-weight:bold;
+  max-width:400px;
+}
+
 #tradePanel{
   position:fixed;
   top:20px;
@@ -137,7 +156,7 @@ button{cursor:pointer;margin-top:5px;}
   color:#4CAF50;
 }
 
-#tradePanel input, #tradePanel select{
+#tradePanel input{
   width:100%;
   padding:8px;
   margin:5px 0;
@@ -155,18 +174,11 @@ button{cursor:pointer;margin-top:5px;}
   border-radius:5px;
   cursor:pointer;
   background:#222;
-  transition:all 0.2s;
-}
-
-.tradeCharItem:hover{
-  background:#333;
-  border-color:#4CAF50;
 }
 
 .tradeCharItem.selected{
   background:#4CAF50;
   color:black;
-  border-color:#4CAF50;
 }
 
 .tradeList{
@@ -186,18 +198,6 @@ button{cursor:pointer;margin-top:5px;}
   background:#222;
 }
 
-.tradeOffer.pending{
-  border-color:#ff9800;
-  background:#2a2000;
-}
-
-.tradeOffer.completed{
-  border-color:#4CAF50;
-  background:#002000;
-  opacity:0.6;
-}
-
-/* ===== 右下パネル（合成）===== */
 #fuseArea{
   position:fixed;
   bottom:20px;
@@ -225,11 +225,6 @@ button{cursor:pointer;margin-top:5px;}
   max-height:400px;
 }
 
-#fuseSlots .char{
-  margin-bottom:5px;
-}
-
-/* ===== ボタンスタイル ===== */
 #tradeToggleBtn{
   position:fixed;
   top:15px;
@@ -281,7 +276,7 @@ button{cursor:pointer;margin-top:5px;}
   display:none;
   position:fixed;
   right:20px;
-  bottom:20px;
+  bottom:80px;
   background:linear-gradient(45deg,gold,orange);
   color:black;
   font-weight:bold;
@@ -290,6 +285,11 @@ button{cursor:pointer;margin-top:5px;}
   box-shadow:0 0 15px gold;
   z-index:2000;
   animation:pulse 1s infinite alternate;
+}
+
+@keyframes pulse{
+  from { transform:scale(1); box-shadow:0 0 10px gold; }
+  to { transform:scale(1.08); box-shadow:0 0 25px orange; }
 }
 
 #codeBox{
@@ -318,180 +318,86 @@ button{
   border-radius:5px;
   cursor:pointer;
   font-weight:bold;
-  transition:all 0.2s;
 }
 
 button:hover{
   background:#666;
 }
 
-button:active{
-  transform:scale(0.95);
+.toast {
+  position:fixed;
+  bottom:100px;
+  right:20px;
+  background:rgba(0,0,0,0.9);
+  color:white;
+  padding:15px 20px;
+  border-radius:10px;
+  border-left:4px solid #4CAF50;
+  z-index:4999;
+  animation: slideIn 0.4s ease-out;
+  max-width:300px;
 }
 
-/* ===== カスタムモーダル ===== */
-.modalOverlay{
-  display:none;
+@keyframes slideIn {
+  from { transform: translateX(100%); opacity:0; }
+  to { transform: translateX(0); opacity:1; }
+}
+
+#dialogBackdrop {
   position:fixed;
   top:0;
   left:0;
-  width:100%;
-  height:100%;
+  right:0;
+  bottom:0;
   background:rgba(0,0,0,0.7);
-  z-index:5000;
-  justify-content:center;
-  align-items:center;
+  z-index:4998;
+  display:none;
 }
 
-.modalOverlay.active{
-  display:flex;
-}
-
-.modal{
-  background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-  border:2px solid #00d4ff;
-  border-radius:15px;
+#dialogBox {
+  position:fixed;
+  left:50%;
+  top:50%;
+  transform:translate(-50%, -50%);
+  background:#1e1e1e;
   padding:30px;
-  max-width:500px;
-  width:90%;
-  text-align:center;
-  box-shadow:0 0 30px rgba(0,212,255,0.5);
-  animation:modalSlideIn 0.3s ease-out;
-}
-
-@keyframes modalSlideIn {
-  from {
-    transform:scale(0.8) translateY(-50px);
-    opacity:0;
-  }
-  to {
-    transform:scale(1) translateY(0);
-    opacity:1;
-  }
-}
-
-.modal.success{
-  border-color:#4CAF50;
+  border-radius:15px;
+  border:2px solid #4CAF50;
   box-shadow:0 0 30px rgba(76,175,80,0.5);
+  z-index:4999;
+  display:none;
+  max-width:400px;
+  text-align:center;
+  color:white;
 }
 
-.modal.error{
-  border-color:#f44336;
-  box-shadow:0 0 30px rgba(244,67,54,0.5);
+#dialogBox.show {
+  display:block;
 }
 
-.modal.warning{
-  border-color:#ff9800;
-  box-shadow:0 0 30px rgba(255,152,0,0.5);
-}
-
-.modal h2{
+#dialogBox h3 {
   margin-top:0;
-  font-size:28px;
-  color:#00d4ff;
-  text-shadow:0 0 10px rgba(0,212,255,0.5);
-}
-
-.modal.success h2{
   color:#4CAF50;
-  text-shadow:0 0 10px rgba(76,175,80,0.5);
+  font-size:24px;
 }
 
-.modal.error h2{
-  color:#f44336;
-  text-shadow:0 0 10px rgba(244,67,54,0.5);
-}
-
-.modal.warning h2{
-  color:#ff9800;
-  text-shadow:0 0 10px rgba(255,152,0,0.5);
-}
-
-.modal p{
-  font-size:16px;
-  margin:15px 0;
-  color:#ccc;
-}
-
-.modalButtons{
+#dialogBox .buttons {
+  margin-top:20px;
   display:flex;
   gap:10px;
-  margin-top:20px;
-  justify-content:center;
 }
 
-.modalButtons button{
+#dialogBox button {
   flex:1;
-  padding:10px 20px;
-  font-size:14px;
-  border:none;
-  border-radius:8px;
-  cursor:pointer;
-  font-weight:bold;
-  transition:all 0.2s;
+  padding:10px;
 }
 
-.modalButtons button.confirm{
+#dialogBox button.confirm {
   background:#4CAF50;
-  color:white;
 }
 
-.modalButtons button.confirm:hover{
-  background:#45a049;
-  box-shadow:0 0 15px rgba(76,175,80,0.5);
-}
-
-.modalButtons button.cancel{
+#dialogBox button.cancel {
   background:#666;
-  color:white;
-}
-
-.modalButtons button.cancel:hover{
-  background:#777;
-}
-
-.modalButtons button.close{
-  background:#2196F3;
-  color:white;
-}
-
-.modalButtons button.close:hover{
-  background:#0b7dda;
-  box-shadow:0 0 15px rgba(33,150,243,0.5);
-}
-
-/* キャラ表示用 */
-.modalCharDisplay{
-  background:#222;
-  border:2px solid #00d4ff;
-  border-radius:10px;
-  padding:15px;
-  margin:15px 0;
-  font-size:14px;
-}
-
-.modalCharDisplay strong{
-  color:#00d4ff;
-  text-shadow:0 0 5px rgba(0,212,255,0.5);
-}
-
-/* フュージョンエフェクト */
-@keyframes fusionFlash {
-  0% { opacity:1; transform:scale(1); }
-  50% { opacity:0.5; transform:scale(1.2); }
-  100% { opacity:1; transform:scale(1); }
-}
-
-.modal.fusion{
-  animation:fusionFlash 0.6s ease-in-out, modalSlideIn 0.3s ease-out;
-  border-color:#ff9800;
-  box-shadow:0 0 50px rgba(255,152,0,0.8);
-}
-
-.modal.fusion h2{
-  color:#ff9800;
-  text-shadow:0 0 15px rgba(255,152,0,0.8);
-  animation:pulse 0.6s ease-in-out;
 }
 </style>
 </head>
@@ -515,15 +421,14 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 </script>
 
-<!-- メインUI左上 -->
 <div id="ui">
   <h3>📋 ゲーム情報</h3>
-  <div>キャッシュ: <span id="money">0</span></div>
-  <div>リバース: <span id="level">1</span></div>
-  <div>容量: <span id="cap">10</span></div>
-  <div>倍率: x<span id="multiplier">1</span></div>
-  <button id="upgradeBtn" onclick="upgradeBase()">リバース</button>
-  <button onclick="showResetConfirm()" style="background:#d32f2f;">リセット</button>
+  <div>💰 <span id="money">0</span></div>
+  <div>📊 <span id="level">1</span></div>
+  <div>📦 <span id="cap">10</span></div>
+  <div>⚡ x<span id="multiplier">1</span></div>
+  <button id="upgradeBtn" onclick="upgradeBase()" style="width:100%; margin-top:8px;">リバース</button>
+  <button onclick="showResetDialog()" style="background:#d32f2f; width:100%; margin-top:3px;">リセット</button>
   <hr>
   <div id="codeBox">
     <input id="codeInput" placeholder="コード入力">
@@ -531,61 +436,42 @@ const db = firebase.database();
   </div>
 </div>
 
-<!-- 管理者パネル -->
 <div id="adminPanel">
   <h3 style="color:gold;">👑 管理者パネル</h3>
   <button onclick="startAdminEvent()" style="background:#ff9800;">イベント開始</button>
   <button onclick="stopAdminEvent()" style="background:#d32f2f;">イベント終了</button>
-  <div id="eventStatus" style="margin-top:10px;color:lime;">
-    イベント停止中
-  </div>
+  <div id="eventStatus" style="margin-top:10px;color:lime;">イベント停止中</div>
 </div>
 
-<!-- ベースレイアウト -->
 <div id="carpet"></div>
 <div id="base"></div>
 
-<!-- ===== ボタン ===== -->
 <button id="tradeToggleBtn" onclick="toggleTradePanel()">🔄 キャラ交換</button>
 <button id="fuseToggleBtn" onclick="toggleFusePanel()">🧪 合成</button>
 
-<!-- ===== 右上パネル（キャラ交換）===== -->
 <div id="tradePanel">
   <h3>🌍 キャラ交換</h3>
-  
-  <!-- タブ切り替え -->
   <div style="display:flex; gap:5px; margin-bottom:10px;">
     <button onclick="switchTradeTab('offer')" id="tabOffer" style="flex:1; background:#4CAF50;">📤 出品</button>
     <button onclick="switchTradeTab('find')" id="tabFind" style="flex:1; background:#666;">🔍 募集</button>
   </div>
-
-  <!-- 出品タブ -->
   <div id="offerTab">
     <h4>自分のキャラから選択</h4>
     <div class="tradeList" id="myCharList"></div>
-    
-    <div>
-      <label>募集説明:</label>
-      <input type="text" id="tradeMessage" placeholder="例：シークレット求む！">
-    </div>
-    
+    <label>募集説明:</label>
+    <input type="text" id="tradeMessage" placeholder="例：シークレット求む！">
     <button onclick="postTrade()" style="width:100%; background:#4CAF50;">📤 出品する</button>
     <hr>
-    
     <h4>受け取った申請</h4>
     <div class="tradeList" id="incomingRequests"></div>
   </div>
-
-  <!-- 募集タブ -->
   <div id="findTab" style="display:none;">
     <h4>募集中の交換</h4>
     <div class="tradeList" id="publicTradesList"></div>
   </div>
-
-  <button onclick="toggleTradePanel()" style="width:100; margin-top:10px;">✕ 閉じる</button>
+  <button onclick="toggleTradePanel()" style="width:100%; margin-top:10px;">✕ 閉じる</button>
 </div>
 
-<!-- ===== 右下パネル（合成）===== -->
 <div id="fuseArea">
   <h3>🧪 マシーン</h3>
   <div>合計収益: <span id="fuseTotal">0</span>/s</div>
@@ -594,18 +480,15 @@ const db = firebase.database();
   <button onclick="toggleFusePanel()" style="width:100%; margin-top:5px; background:#d32f2f;">✕ 閉じる</button>
 </div>
 
-<!-- イベントバナー -->
-<div id="adminEventBanner">
-  👑 管理者イベント発動中
-</div>
-
-<!-- ===== カスタムモーダル ===== -->
-<div class="modalOverlay" id="modalOverlay">
-  <div class="modal" id="modal">
-    <h2 id="modalTitle">タイトル</h2>
-    <p id="modalText">テキスト</p>
-    <div id="modalContent"></div>
-    <div class="modalButtons" id="modalButtons"></div>
+<div id="adminEventBanner">👑 管理者イベント発動中</div>
+<div id="notificationPanel"></div>
+<div id="dialogBackdrop"></div>
+<div id="dialogBox">
+  <h3 id="dialogTitle">確認</h3>
+  <p id="dialogMessage"></p>
+  <div class="buttons">
+    <button class="confirm" onclick="confirmDialog()">はい</button>
+    <button class="cancel" onclick="cancelDialog()">いいえ</button>
   </div>
 </div>
 
@@ -616,14 +499,9 @@ if(!playerId){
   localStorage.setItem("playerId", playerId);
 }
 
-let adminEventActive = false;
-let globalLuckMultiplier = 1;
-let isAdmin = false;
+let adminEventActive = false, globalLuckMultiplier = 1, isAdmin = false;
 let usedCodes = JSON.parse(localStorage.getItem("usedCodes")||"[]");
-
-let selectedMyChar = null;
-let currentTradeTab = "offer";
-let isModalActive = false; // ★ モーダル状態を追跡
+let selectedMyChar = null, currentTradeTab = "offer", dialogCallback = null;
 
 const rarities = [
   {name:"COMMON", color:"#777", rate:1000, chance:49},
@@ -693,165 +571,64 @@ const secretCharacters = [
 ];
 
 const fuseTable = [
-  {min:0, max:10000, results:[
-    {type:"rarity", value:"COMMON", chance:25},
-    {type:"rarity", value:"RARE", chance:35},
-    {type:"rarity", value:"EPIC", chance:40}
-  ]},
-  {min:10000, max:50000, results:[
-    {type:"rarity", value:"COMMON", chance:20},
-    {type:"rarity", value:"RARE", chance:25},
-    {type:"rarity", value:"EPIC", chance:55}
-  ]},
-  {min:50000, max:350000, results:[
-    {type:"rarity", value:"RARE", chance:35},
-    {type:"rarity", value:"EPIC", chance:50},
-    {type:"rarity", value:"LEGENDARY", chance:25}
-  ]},
-  {min:350000, max:1000000, results:[
-    {type:"rarity", value:"EPIC", chance:25},
-    {type:"rarity", value:"LEGENDARY", chance:40},
-    {type:"rarity", value:"MYTHIC", chance:25},
-    {type:"rarity", value:"GOD", chance:10}
-  ]},
-  {min:1000000, max:2000000, results:[
-    {type:"rarity", value:"MYTHIC", chance:35},
-    {type:"rarity", value:"GOD", chance:55},
-    {type:"secret", value:"Pot Hotspot", chance:10}
-  ]},
-  {min:2000000, max:5000000, results:[
-    {type:"rarity", value:"GOD", chance:25},
-    {type:"secret", value:"Pot Hotspot", chance:35},
-    {type:"secret", value:"Garamaramadungdung", chance:25},
-    {type:"secret", value:"La Grande Combinacion", chance:15}
-  ]},
-  {min:5000000, max:10000000, results:[
-    {type:"secret", value:"Pot Hotspot", chance:25},
-    {type:"secret", value:"67", chance:35},
-    {type:"secret", value:"69", chance:30},
-    {type:"secret", value:"Lirili Ralilu", chance:10}
-  ]},
-  {min:10000000, max:15000000, results:[
-    {type:"secret", value:"67", chance:30},
-    {type:"secret", value:"69", chance:25},
-    {type:"secret", value:"Lirili Ralilu", chance:30},
-    {type:"secret", value:"La Esok Sekolah", chance:15}
-  ]},
-  {min:15000000, max:25000000, results:[
-    {type:"secret", value:"Lirili Ralilu", chance:35},
-    {type:"secret", value:"La Esok Sekolah", chance:45},
-    {type:"secret", value:"Chimpanzini Kingini", chance:15},
-    {type:"secret", value:"Gorgonzilla", chance:5}
-  ]},
-  {min:25000000, max:35000000, results:[
-    {type:"secret", value:"La Esok Sekolah", chance:35},
-    {type:"secret", value:"Chimpanzini Kingini", chance:40},
-    {type:"secret", value:"Spaghetti Tualetti", chance:18},
-    {type:"secret", value:"Gorgonzilla", chance:10},
-    {type:"secret", value:"La Crazy Combinacion", chance:2}
-  ]},
-  {min:35000000, max:45000000, results:[
-    {type:"secret", value:"Chimpanzini Kingini", chance:45},
-    {type:"secret", value:"Spaghetti Tualetti", chance:35},
-    {type:"secret", value:"Gorgonzilla", chance:15},
-    {type:"secret", value:"La Crazy Combinacion", chance:5}
-  ]},
-  {min:45000000, max:65000000, results:[
-    {type:"secret", value:"Spaghetti Tualetti", chance:45},
-    {type:"secret", value:"Gorgonzilla", chance:25},
-    {type:"secret", value:"La Crazy Combinacion", chance:25},
-    {type:"secret", value:"Gigalitraktos Spidorobos", chance:5}
-  ]},
-  {min:65000000, max:100000000, results:[
-    {type:"secret", value:"Spaghetti Tualetti", chance:35},
-    {type:"secret", value:"Gorgonzilla", chance:25},
-    {type:"secret", value:"La Crazy Combinacion", chance:20},
-    {type:"secret", value:"Gigalitraktos Spidorobos", chance:19},
-    {type:"secret", value:"YAJUU SENPAI", chance:1}
-  ]},
-  {min:100000000, max:300000000, results:[
-    {type:"secret", value:"Gorgonzilla", chance:45},
-    {type:"secret", value:"La Crazy Combinacion", chance:35},
-    {type:"secret", value:"Gigalitraktos Spidorobos", chance:15},
-    {type:"secret", value:"YAJUU SENPAI", chance:5}
-  ]},
-  {min:300000000, max:500000000, results:[
-    {type:"secret", value:"Gorgonzilla", chance:25},
-    {type:"secret", value:"La Crazy Combinacion", chance:40},
-    {type:"secret", value:"Gigalitraktos Spidorobos", chance:25},
-    {type:"secret", value:"YAJUU SENPAI", chance:10}
-  ]},
-  {min:500000000, max:Infinity, results:[
-    {type:"secret", value:"La Crazy Combinacion", chance:45},
-    {type:"secret", value:"Gigalitraktos Spidorobos", chance:35},
-    {type:"secret", value:"YAJUU SENPAI", chance:20}
-  ]}
+  {min:0, max:10000, results:[{type:"rarity", value:"COMMON", chance:25},{type:"rarity", value:"RARE", chance:35},{type:"rarity", value:"EPIC", chance:40}]},
+  {min:10000, max:50000, results:[{type:"rarity", value:"COMMON", chance:20},{type:"rarity", value:"RARE", chance:25},{type:"rarity", value:"EPIC", chance:55}]},
+  {min:50000, max:350000, results:[{type:"rarity", value:"RARE", chance:35},{type:"rarity", value:"EPIC", chance:50},{type:"rarity", value:"LEGENDARY", chance:25}]},
+  {min:350000, max:1000000, results:[{type:"rarity", value:"EPIC", chance:25},{type:"rarity", value:"LEGENDARY", chance:40},{type:"rarity", value:"MYTHIC", chance:25},{type:"rarity", value:"GOD", chance:10}]},
+  {min:1000000, max:2000000, results:[{type:"rarity", value:"MYTHIC", chance:35},{type:"rarity", value:"GOD", chance:55},{type:"secret", value:"Pot Hotspot", chance:10}]},
+  {min:2000000, max:5000000, results:[{type:"rarity", value:"GOD", chance:25},{type:"secret", value:"Pot Hotspot", chance:35},{type:"secret", value:"Garamaramadungdung", chance:25},{type:"secret", value:"La Grande Combinacion", chance:15}]},
+  {min:5000000, max:10000000, results:[{type:"secret", value:"Pot Hotspot", chance:25},{type:"secret", value:"67", chance:35},{type:"secret", value:"69", chance:30},{type:"secret", value:"Lirili Ralilu", chance:10}]},
+  {min:10000000, max:15000000, results:[{type:"secret", value:"67", chance:30},{type:"secret", value:"69", chance:25},{type:"secret", value:"Lirili Ralilu", chance:30},{type:"secret", value:"La Esok Sekolah", chance:15}]},
+  {min:15000000, max:25000000, results:[{type:"secret", value:"Lirili Ralilu", chance:35},{type:"secret", value:"La Esok Sekolah", chance:45},{type:"secret", value:"Chimpanzini Kingini", chance:15},{type:"secret", value:"Gorgonzilla", chance:5}]},
+  {min:25000000, max:35000000, results:[{type:"secret", value:"La Esok Sekolah", chance:35},{type:"secret", value:"Chimpanzini Kingini", chance:40},{type:"secret", value:"Spaghetti Tualetti", chance:18},{type:"secret", value:"Gorgonzilla", chance:10},{type:"secret", value:"La Crazy Combinacion", chance:2}]},
+  {min:35000000, max:45000000, results:[{type:"secret", value:"Chimpanzini Kingini", chance:45},{type:"secret", value:"Spaghetti Tualetti", chance:35},{type:"secret", value:"Gorgonzilla", chance:15},{type:"secret", value:"La Crazy Combinacion", chance:5}]},
+  {min:45000000, max:65000000, results:[{type:"secret", value:"Spaghetti Tualetti", chance:45},{type:"secret", value:"Gorgonzilla", chance:25},{type:"secret", value:"La Crazy Combinacion", chance:25},{type:"secret", value:"Gigalitraktos Spidorobos", chance:5}]},
+  {min:65000000, max:100000000, results:[{type:"secret", value:"Spaghetti Tualetti", chance:35},{type:"secret", value:"Gorgonzilla", chance:25},{type:"secret", value:"La Crazy Combinacion", chance:20},{type:"secret", value:"Gigalitraktos Spidorobos", chance:19},{type:"secret", value:"YAJUU SENPAI", chance:1}]},
+  {min:100000000, max:300000000, results:[{type:"secret", value:"Gorgonzilla", chance:45},{type:"secret", value:"La Crazy Combinacion", chance:35},{type:"secret", value:"Gigalitraktos Spidorobos", chance:15},{type:"secret", value:"YAJUU SENPAI", chance:5}]},
+  {min:300000000, max:500000000, results:[{type:"secret", value:"Gorgonzilla", chance:25},{type:"secret", value:"La Crazy Combinacion", chance:40},{type:"secret", value:"Gigalitraktos Spidorobos", chance:25},{type:"secret", value:"YAJUU SENPAI", chance:10}]},
+  {min:500000000, max:Infinity, results:[{type:"secret", value:"La Crazy Combinacion", chance:45},{type:"secret", value:"Gigalitraktos Spidorobos", chance:35},{type:"secret", value:"YAJUU SENPAI", chance:20}]}
 ];
 
-let money=0;
-let baseLevel=1;
-let capacity=10;
-let incomeMultiplier=1;
-let base=[];
-let fuseList=[];
-let spawnInterval;
+let money=0, baseLevel=1, capacity=10, incomeMultiplier=1, base=[], fuseList=[], spawnInterval;
 
-/* ===== モーダルシステム ===== */
-function showModal(title, text, type = "normal", buttons = [], content = ""){
-  isModalActive = true;
-  const overlay = document.getElementById("modalOverlay");
-  const modal = document.getElementById("modal");
-  const titleEl = document.getElementById("modalTitle");
-  const textEl = document.getElementById("modalText");
-  const buttonsEl = document.getElementById("modalButtons");
-  const contentEl = document.getElementById("modalContent");
-  
-  titleEl.textContent = title;
-  textEl.textContent = text;
-  contentEl.innerHTML = content;
-  
-  modal.className = "modal " + type;
-  buttonsEl.innerHTML = "";
-  
-  buttons.forEach(btn => {
-    const button = document.createElement("button");
-    button.textContent = btn.text;
-    button.className = btn.class || "close";
-    button.onclick = () => {
-      btn.onClick();
-      closeModal();
-    };
-    buttonsEl.appendChild(button);
-  });
-  
-  overlay.classList.add("active");
+function showNotification(message, type = "success", duration = 3000) {
+  const panel = document.getElementById("notificationPanel");
+  panel.textContent = message;
+  panel.className = type;
+  panel.style.display = "block";
+  setTimeout(() => { panel.style.display = "none"; }, duration);
 }
 
-function closeModal(){
-  isModalActive = false;
-  document.getElementById("modalOverlay").classList.remove("active");
+function showToast(message, type = "success") {
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = message;
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.style.animation = "slideOut 0.4s"; setTimeout(() => toast.remove(), 400); }, 3000);
 }
 
-function showConfirm(title, text, onConfirm, onCancel = null){
-  showModal(title, text, "warning", [
-    { text: "✓ はい", class: "confirm", onClick: onConfirm },
-    { text: "✗ いいえ", class: "cancel", onClick: onCancel || closeModal }
-  ]);
+function showDialog(title, message, callback) {
+  document.getElementById("dialogTitle").textContent = title;
+  document.getElementById("dialogMessage").textContent = message;
+  document.getElementById("dialogBox").classList.add("show");
+  document.getElementById("dialogBackdrop").style.display = "block";
+  dialogCallback = callback;
 }
 
-function showSuccess(title, text, content = "", onClose = null){
-  showModal(title, text, "success", [
-    { text: "OK", class: "close", onClick: onClose || closeModal }
-  ], content);
+function confirmDialog() {
+  document.getElementById("dialogBox").classList.remove("show");
+  document.getElementById("dialogBackdrop").style.display = "none";
+  if(dialogCallback) dialogCallback(true);
+  dialogCallback = null;
 }
 
-function showError(title, text, onClose = null){
-  showModal(title, text, "error", [
-    { text: "OK", class: "close", onClick: onClose || closeModal }
-  ]);
+function cancelDialog() {
+  document.getElementById("dialogBox").classList.remove("show");
+  document.getElementById("dialogBackdrop").style.display = "none";
+  if(dialogCallback) dialogCallback(false);
+  dialogCallback = null;
 }
 
-/* ===== 数字省略 ===== */
 function format(num){
   if(num>=1e42) return (num/1e42).toFixed(1)+"TD";
   if(num>=1e39) return (num/1e39).toFixed(1)+"DD";
@@ -870,9 +647,7 @@ function format(num){
   return Math.floor(num);
 }
 
-function getCharName(c){
-  return c.name === "SECRET" ? c.character : c.name;
-}
+function getCharName(c){ return c.name === "SECRET" ? c.character : c.name; }
 
 function getCharDisplay(c){
   let attr = c.attribute ? c.attribute.name : "Default";
@@ -881,60 +656,32 @@ function getCharDisplay(c){
   return `[${attr}] ${getCharName(c)} ${mutations} +${rate}`;
 }
 
-function getCharHTML(c){
-  let attr = c.attribute ? c.attribute.name : "Default";
-  let rate = format(c.rate) + "/s";
-  let mutations = (c.mutations && c.mutations.length > 0) ? c.mutations.map(m=>m.icon).join("") : "";
-  return `<div class="modalCharDisplay">
-    <strong style="color:#00d4ff;">[${attr}]</strong> ${getCharName(c)}<br>
-    ${mutations} <strong>+${rate}</strong>
-  </div>`;
-}
-
-/* ===== スロット保証 ===== */
 function ensureBaseSlots(){
-  while(base.length < capacity){
-    base.push(null);
-  }
-  if(base.length > capacity){
-    base = base.slice(0, capacity);
-  }
+  while(base.length < capacity) base.push(null);
+  if(base.length > capacity) base = base.slice(0, capacity);
 }
 
-/* ===== UI更新 ===== */
 function updateUI(){
   const cost = Math.floor(50000*Math.pow(4, baseLevel-1));
   document.getElementById("money").innerText = format(money);
   document.getElementById("level").innerText = baseLevel;
   document.getElementById("cap").innerText = capacity;
   document.getElementById("multiplier").innerText = incomeMultiplier.toFixed(1);
-  document.getElementById("upgradeBtn").innerText = "リバース（お金リセット） (" + format(cost) + ")";
+  document.getElementById("upgradeBtn").innerText = "リバース (" + format(cost) + ")";
 }
 
-/* ===== パネル表示/非表示 ===== */
 function toggleTradePanel(){
   const panel = document.getElementById("tradePanel");
   const fuseArea = document.getElementById("fuseArea");
-  
-  if(panel.style.display === "block"){
-    panel.style.display = "none";
-  } else {
-    panel.style.display = "block";
-    fuseArea.style.display = "none";
-    renderTradePanel();
-  }
+  if(panel.style.display === "block"){ panel.style.display = "none"; }
+  else { panel.style.display = "block"; fuseArea.style.display = "none"; renderTradePanel(); }
 }
 
 function toggleFusePanel(){
   const fuseArea = document.getElementById("fuseArea");
   const panel = document.getElementById("tradePanel");
-  
-  if(fuseArea.style.display === "flex"){
-    fuseArea.style.display = "none";
-  } else {
-    fuseArea.style.display = "flex";
-    panel.style.display = "none";
-  }
+  if(fuseArea.style.display === "flex"){ fuseArea.style.display = "none"; }
+  else { fuseArea.style.display = "flex"; panel.style.display = "none"; }
 }
 
 function switchTradeTab(tab){
@@ -943,83 +690,43 @@ function switchTradeTab(tab){
   document.getElementById("findTab").style.display = tab === "find" ? "block" : "none";
   document.getElementById("tabOffer").style.background = tab === "offer" ? "#4CAF50" : "#666";
   document.getElementById("tabFind").style.background = tab === "find" ? "#2196F3" : "#666";
-  
-  if(tab === "find"){
-    renderPublicTrades();
-  }
+  if(tab === "find") renderPublicTrades();
 }
 
-/* ===== リセット ===== */
-function showResetConfirm(){
-  showConfirm(
-    "⚠️ ゲームをリセット",
-    "本当にリセットしますか？\nすべてのデータが消えます。",
-    () => {
-      localStorage.removeItem("mergeSave");
-      money=0;
-      baseLevel=1;
-      capacity=10;
-      incomeMultiplier=1;
-      base=[];
-      fuseList=[];
-      ensureBaseSlots();
-      renderBase();
-      renderFuse();
-      updateUI();
-      showSuccess("🔄 リセット完了", "ゲームがリセットされました");
+function showResetDialog(){
+  showDialog("リセット確認", "本当にリセットしますか？", (confirmed) => {
+    if(confirmed){
+      money=0; baseLevel=1; capacity=10; incomeMultiplier=1; base=[]; fuseList=[];
+      ensureBaseSlots(); renderBase(); renderFuse(); updateUI();
+      showToast("✅ ゲームをリセットしました", "success");
     }
-  );
+  });
 }
 
-/* ===== 抽選 ===== */
 function getRandomRarity(){
-  const adjusted = rarities.map(r=>{
-    return { ...r, chance: r.chance * globalLuckMultiplier };
-  });
+  const adjusted = rarities.map(r=>({...r, chance: r.chance * globalLuckMultiplier }));
   const total = adjusted.reduce((s,r)=>s+r.chance,0);
   const rand = Math.random()*total;
   let sum=0;
-  for(let r of adjusted){
-    sum+=r.chance;
-    if(rand<=sum) return r;
-  }
+  for(let r of adjusted){ sum+=r.chance; if(rand<=sum) return r; }
 }
 
 function spawnWalker(){
-  // ★ モーダルが表示中はスポーンしない
-  if(isModalActive) return;
-
   let baseData = getRandomRarity();
   let data = {...baseData};
-  
   if(baseData.name === "SECRET"){
     const pick = secretCharacters[Math.floor(Math.random()*secretCharacters.length)];
-    data = {
-      name:"SECRET",
-      character: pick.character,
-      rate: pick.rate,
-      color:"black"
-    };
+    data = {name:"SECRET", character: pick.character, rate: pick.rate, color:"black"};
   }
-
   let totalChance = attributes.reduce((s,a)=>s+a.chance,0);
   let rand = Math.random()*totalChance;
   let sum = 0;
-  for(let attr of attributes){
-    sum += attr.chance;
-    if(rand <= sum){
-      data.attribute = attr;
-      break;
-    }
-  }
-
+  for(let attr of attributes){ sum += attr.chance; if(rand <= sum){ data.attribute = attr; break; }}
+  
   data.mutations = [];
   if(adminEventActive){
-    mutations.forEach(m=>{
-      if(Math.random()<0.15) data.mutations.push(m);
-    });
+    mutations.forEach(m=>{ if(Math.random()<0.15) data.mutations.push(m); });
   }
-
   let totalMultiplier = data.attribute.multiplier;
   data.mutations.forEach(m=>totalMultiplier += m.bonus);
   data.rate = Math.floor(data.rate * totalMultiplier);
@@ -1031,234 +738,124 @@ function spawnWalker(){
 
   let attributeName = data.attribute ? data.attribute.name : "Default";
   let rarityText = data.name === "SECRET" ? data.character : data.name;
-
   const raritySpan = document.createElement("span");
   raritySpan.innerText = rarityText;
   switch(data.name){
-    case "COMMON": raritySpan.style.background="#6b3e1d"; raritySpan.style.color="white"; break;
+    case "COMMON": raritySpan.style.background="#6b3e1d"; break;
     case "RARE": raritySpan.style.background="#4dd0ff"; raritySpan.style.color="#003344"; break;
-    case "EPIC": raritySpan.style.background="purple"; raritySpan.style.color="#ffccff"; break;
-    case "LEGENDARY": raritySpan.style.background="yellow"; raritySpan.style.color="#b36b00"; break;
-    case "MYTHIC": raritySpan.style.background="gold"; raritySpan.style.color="#5a3b00"; break;
+    case "EPIC": raritySpan.style.background="purple"; break;
+    case "LEGENDARY": raritySpan.style.background="yellow"; break;
+    case "MYTHIC": raritySpan.style.background="gold"; break;
     case "GOD": raritySpan.style.background="gray"; raritySpan.style.color="cyan"; break;
     case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
   }
-  raritySpan.style.padding="2px 6px";
-  raritySpan.style.borderRadius="6px";
-  raritySpan.style.fontSize="10px";
-  raritySpan.style.display="inline-block";
-  raritySpan.style.marginTop="2px";
-
-  let mutationIcons = "";
-  if(data.mutations && data.mutations.length > 0){
-    mutationIcons = data.mutations.map(m=>m.icon).join("");
-  }
-
-  div.innerHTML = "<div>[" + attributeName + "]</div>" +
-                  "<div>" + raritySpan.outerHTML + "</div>" +
-                  "<div>+" + format(data.rate) + "/s</div>";
-
+  raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
+  let mutationIcons = (data.mutations && data.mutations.length > 0) ? data.mutations.map(m=>m.icon).join("") : "";
+  div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>+" + format(data.rate) + "/s</div>";
   div.style.top = "-100px";
   document.body.appendChild(div);
-
   let pos=-100;
   const move = setInterval(()=>{
     pos += 1;
     div.style.top = pos + "px";
-    if(pos>window.innerHeight){
-      div.remove();
-      clearInterval(move);
-    }
+    if(pos>window.innerHeight){ div.remove(); clearInterval(move); }
   },30);
-
   div.onclick = ()=>{
     const emptyIndex = base.findIndex(s=>s===null);
-    if(emptyIndex!==-1){
-      base[emptyIndex]=data;
-      renderBase();
-      div.remove();
-      clearInterval(move);
-    }
+    if(emptyIndex!==-1){ base[emptyIndex]=data; renderBase(); div.remove(); clearInterval(move); }
   };
-
   data.baseRate = data.rate;
 }
 
-/* ===== 基地描画 ===== */
 function renderBase(){
   const baseDiv = document.getElementById("base");
   baseDiv.innerHTML = "";
-  
   base.forEach((c,i)=>{
     const div = document.createElement("div");
     div.className = "char";
-    
     if(c){
-      div.draggable = true;
       div.style.background = c.attribute ? c.attribute.color : "#444";
       div.style.border = "1px solid #333";
-
-      let mutationIcons = "";
-      if(c.mutations && c.mutations.length > 0){
-        mutationIcons = c.mutations.map(m=>m.icon).join("");
-      }
-
+      let mutationIcons = (c.mutations && c.mutations.length > 0) ? c.mutations.map(m=>m.icon).join("") : "";
       let attributeName = c.attribute ? c.attribute.name : "Default";
       let rarityText = c.name === "SECRET" ? c.character : c.name;
-
       const raritySpan = document.createElement("span");
       raritySpan.innerText = rarityText;
       switch(c.name){
-        case "COMMON": raritySpan.style.background="#6b3e1d"; raritySpan.style.color="white"; break;
+        case "COMMON": raritySpan.style.background="#6b3e1d"; break;
         case "RARE": raritySpan.style.background="#4dd0ff"; raritySpan.style.color="#003344"; break;
-        case "EPIC": raritySpan.style.background="purple"; raritySpan.style.color="#ffccff"; break;
-        case "LEGENDARY": raritySpan.style.background="yellow"; raritySpan.style.color="#b36b00"; break;
-        case "MYTHIC": raritySpan.style.background="gold"; raritySpan.style.color="#5a3b00"; break;
+        case "EPIC": raritySpan.style.background="purple"; break;
+        case "LEGENDARY": raritySpan.style.background="yellow"; break;
+        case "MYTHIC": raritySpan.style.background="gold"; break;
         case "GOD": raritySpan.style.background="gray"; raritySpan.style.color="cyan"; break;
         case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
       }
-      raritySpan.style.padding="2px 6px";
-      raritySpan.style.borderRadius="6px";
-      raritySpan.style.fontSize="10px";
-      raritySpan.style.display="inline-block";
-      raritySpan.style.marginTop="2px";
-
-      div.innerHTML = "<div>[" + attributeName + "]</div>" +
-                      "<div>" + raritySpan.outerHTML + "</div>" +
-                      "<div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
-
-      div.onclick = ()=>{
-        if(fuseList.length >= 5) return;
-        fuseList.push(c);
-        base[i] = null;
-        renderBase();
-        renderFuse();
-      };
-
-      div.oncontextmenu = (e)=>{
-        e.preventDefault();
-        base[i] = null;
-        renderBase();
-      };
+      raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
+      div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
+      div.onclick = ()=>{ if(fuseList.length >= 5) return; fuseList.push(c); base[i] = null; renderBase(); renderFuse(); };
+      div.oncontextmenu = (e)=>{ e.preventDefault(); base[i] = null; renderBase(); };
     } else {
       div.style.background = "#111";
       div.style.border = "1px dashed #333";
     }
-    
     baseDiv.appendChild(div);
   });
 }
 
-/* ===== 合成表示 ===== */
 function renderFuse(){
   const fuseDiv = document.getElementById("fuseSlots");
   fuseDiv.innerHTML = "";
   let total = 0;
-
   fuseList.forEach((c)=>{
     total += c.rate;
     const div = document.createElement("div");
     div.className = "char";
     div.style.background = c.attribute ? c.attribute.color : "#444";
     div.style.fontSize = "11px";
-
-    let mutationIcons = "";
-    if(c.mutations && c.mutations.length > 0){
-      mutationIcons = c.mutations.map(m=>m.icon).join("");
-    }
-
+    let mutationIcons = (c.mutations && c.mutations.length > 0) ? c.mutations.map(m=>m.icon).join("") : "";
     let attributeName = c.attribute ? c.attribute.name : "Default";
     let rarityText = c.name === "SECRET" ? c.character : c.name;
-
     const raritySpan = document.createElement("span");
     raritySpan.innerText = rarityText;
     switch(c.name){
-      case "COMMON": raritySpan.style.background="#6b3e1d"; raritySpan.style.color="white"; break;
+      case "COMMON": raritySpan.style.background="#6b3e1d"; break;
       case "RARE": raritySpan.style.background="#4dd0ff"; raritySpan.style.color="#003344"; break;
-      case "EPIC": raritySpan.style.background="purple"; raritySpan.style.color="#ffccff"; break;
-      case "LEGENDARY": raritySpan.style.background="yellow"; raritySpan.style.color="#b36b00"; break;
-      case "MYTHIC": raritySpan.style.background="gold"; raritySpan.style.color="#5a3b00"; break;
+      case "EPIC": raritySpan.style.background="purple"; break;
+      case "LEGENDARY": raritySpan.style.background="yellow"; break;
+      case "MYTHIC": raritySpan.style.background="gold"; break;
       case "GOD": raritySpan.style.background="gray"; raritySpan.style.color="cyan"; break;
       case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
     }
-    raritySpan.style.padding="2px 6px";
-    raritySpan.style.borderRadius="6px";
-    raritySpan.style.fontSize="10px";
-    raritySpan.style.display="inline-block";
-    raritySpan.style.marginTop="2px";
-
-    div.innerHTML = "<div style='font-size:10px;'>[" + attributeName + "]</div>" +
-                    "<div>" + raritySpan.outerHTML + "</div>" +
-                    "<div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
-
-    div.onclick = ()=>{
-      const emptyIndex = base.findIndex(s=>s===null);
-      if(emptyIndex === -1) return;
-      const index = fuseList.indexOf(c);
-      if(index !== -1) fuseList.splice(index,1);
-      base[emptyIndex] = c;
-      renderBase();
-      renderFuse();
-    };
-
+    raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
+    div.innerHTML = "<div style='font-size:10px;'>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
+    div.onclick = ()=>{ const emptyIndex = base.findIndex(s=>s===null); if(emptyIndex === -1) return; const index = fuseList.indexOf(c); if(index !== -1) fuseList.splice(index,1); base[emptyIndex] = c; renderBase(); renderFuse(); };
     fuseDiv.appendChild(div);
   });
-
   document.getElementById("fuseTotal").innerText = format(total);
-
   if(fuseList.length > 0){
-    const totalRate = fuseList.reduce((s,c)=>s+(c.rate||0),0);
-    
     const totalBaseRate = fuseList.reduce((sum,c)=>sum+(c.baseRate||c.rate),0);
     const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
     if(table){
       const chanceDiv = document.createElement("div");
-      chanceDiv.style.marginTop = "8px";
-      chanceDiv.style.fontSize = "10px";
-      chanceDiv.style.padding = "8px";
-      chanceDiv.style.background = "#333";
-      chanceDiv.style.borderRadius = "5px";
+      chanceDiv.style.marginTop = "8px"; chanceDiv.style.fontSize = "10px"; chanceDiv.style.padding = "8px"; chanceDiv.style.background = "#333"; chanceDiv.style.borderRadius = "5px";
       chanceDiv.innerHTML = "<b>合成結果確率</b><br>";
       const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
-      table.results.forEach(r=>{
-        let name = r.type === "secret" ? r.value : r.value;
-        let percent = Math.round(r.chance / totalChance * 100);
-        chanceDiv.innerHTML += name + " : " + percent + "%<br>";
-      });
+      table.results.forEach(r=>{ let name = r.type === "secret" ? r.value : r.value; let percent = Math.round(r.chance / totalChance * 100); chanceDiv.innerHTML += name + " : " + percent + "%<br>"; });
       fuseDiv.appendChild(chanceDiv);
     }
   }
 }
 
 function fuse(){
-  if(fuseList.length !== 5) {
-    showError("❌ 合成失敗", `5体必要です！（現在 ${fuseList.length}/5）`);
-    return;
-  }
-
+  if(fuseList.length !== 5) { showNotification(`⚠️ 5体必要です！（現在 ${fuseList.length}/5）`, "error", 2000); return; }
   const used = fuseList.splice(0,5);
-  const totalBaseRate = used.reduce((sum,c)=>{
-    return sum + (c.baseRate ? c.baseRate : c.rate);
-  },0);
-
+  const totalBaseRate = used.reduce((sum,c)=>sum + (c.baseRate ? c.baseRate : c.rate),0);
   const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
-  if(!table){
-    renderFuse();
-    return;
-  }
-
+  if(!table){ renderFuse(); return; }
   const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
   const rand = Math.random() * totalChance;
-  let sum = 0;
-  let chosen = table.results[0];
-  for(let r of table.results){
-    sum += r.chance;
-    if(rand <= sum){
-      chosen = r;
-      break;
-    }
-  }
-
+  let sum = 0, chosen = table.results[0];
+  for(let r of table.results){ sum += r.chance; if(rand <= sum){ chosen = r; break; }}
   let newChar;
   if(chosen.type === "rarity"){
     const rarityData = rarities.find(r => r.name === chosen.value);
@@ -1266,67 +863,34 @@ function fuse(){
     newChar.baseRate = rarityData.rate;
   } else {
     const secretData = secretCharacters.find(s => s.character === chosen.value);
-    newChar = {
-      name:"SECRET",
-      character: secretData.character,
-      color:"black",
-      baseRate: secretData.rate
-    };
+    newChar = {name:"SECRET", character: secretData.character, color:"black", baseRate: secretData.rate};
   }
-
   const firstChar = used[0];
   newChar.attribute = firstChar.attribute;
   newChar.mutations = firstChar.mutations ? [...firstChar.mutations] : [];
   newChar.rate = Math.floor((newChar.baseRate || newChar.rate) * (newChar.attribute ? newChar.attribute.multiplier : 1) + newChar.mutations.reduce((s,m)=>s+m.bonus,0));
-
   const emptyIndex = base.findIndex(s=>s===null);
-  if(emptyIndex !== -1){
-    base[emptyIndex] = newChar;
-  } else {
-    fuseList.push(newChar);
-  }
-
-  renderBase();
-  renderFuse();
-  
-  // ★ ゲーム内演出で表示
-  showSuccess(
-    "✨ 合成成功！", 
-    getCharName(newChar) + " が生成されました！",
-    getCharHTML(newChar)
-  );
+  if(emptyIndex !== -1){ base[emptyIndex] = newChar; } else { fuseList.push(newChar); }
+  renderBase(); renderFuse();
+  showToast(`✨ ${getCharName(newChar)} が生成されました！`, "success");
 }
 
-/* ===== 強化（リバース） ===== */
 function upgradeBase(){
   const cost=Math.floor(50000*Math.pow(4,baseLevel-1));
-  if(money>=cost){
-    money=0;
-    baseLevel++;
-    capacity+=2;
-    incomeMultiplier+=0.5;
-    ensureBaseSlots();
-    renderBase();
-    updateUI();
-    showSuccess("⬆️ リバース完了", `レベル ${baseLevel} になりました！\n容量 +2、倍率 +0.5`);
-  }
+  if(money>=cost){ money=0; baseLevel++; capacity+=2; incomeMultiplier+=0.5; ensureBaseSlots(); renderBase(); updateUI(); showToast("📈 リバースレベルが上がりました！", "success"); }
+  else { showNotification(`💰 ${format(cost - money)} 足りません`, "error", 2000); }
 }
 
-/* ===== 管理者機能 ===== */
 function startAdminEvent(){
   if(!isAdmin) return;
-  db.ref("globalEvent").set({
-    active: true,
-    luck: 67,
-    startTime: Date.now()
-  });
+  db.ref("globalEvent").set({active: true, luck: 67, startTime: Date.now()});
+  showToast("👑 イベントを開始しました", "success");
 }
 
 function stopAdminEvent(){
   if(!isAdmin) return;
-  db.ref("globalEvent").set({
-    active:false
-  });
+  db.ref("globalEvent").set({active:false});
+  showToast("👑 イベントを終了しました", "info");
 }
 
 function useCode(){
@@ -1334,27 +898,16 @@ function useCode(){
   const code = input.value.trim();
   input.value = "";
   if(!code) return;
-
-  if(!isAdmin && usedCodes.includes(code)){
-    showError("❌ コード使用済み", "このコードは既に使用済みです！");
-    return;
-  }
-
+  if(!isAdmin && usedCodes.includes(code)){ showNotification("❌ このコードは既に使用済みです！", "error", 2000); return; }
   if(code === "670402"){
     isAdmin = true;
     document.getElementById("adminPanel").style.display = "block";
-    showSuccess("👑 管理者モード", "管理者権限が有効になりました");
+    showNotification("✅ 管理者モード起動", "success", 2000);
     return;
   }
-
-  if(!isAdmin){
-    usedCodes.push(code);
-    localStorage.setItem("usedCodes",JSON.stringify(usedCodes));
-    showSuccess("✅ コード使用", "コードを使用しました");
-  }
+  if(!isAdmin){ usedCodes.push(code); localStorage.setItem("usedCodes",JSON.stringify(usedCodes)); showToast("✅ コードを使用しました！", "success"); }
 }
 
-/* ===== 交換パネル ===== */
 function renderTradePanel(){
   renderMyCharList();
   renderIncomingRequests();
@@ -1363,45 +916,23 @@ function renderTradePanel(){
 function renderMyCharList(){
   const container = document.getElementById("myCharList");
   container.innerHTML = "";
-  
   base.forEach((c, i)=>{
     if(!c) return;
-    
     const div = document.createElement("div");
     div.className = "tradeCharItem";
     if(i === selectedMyChar) div.classList.add("selected");
-    
-    div.innerHTML = `<div><strong>[${i}] ${getCharName(c)}</strong></div>` +
-                    `<div style="font-size:11px;">${getCharDisplay(c)}</div>`;
-    
-    div.onclick = ()=>{
-      selectedMyChar = (selectedMyChar === i) ? null : i;
-      renderMyCharList();
-    };
-    
+    div.innerHTML = `<div><strong>[${i}] ${getCharName(c)}</strong></div><div style="font-size:11px;">${getCharDisplay(c)}</div>`;
+    div.onclick = ()=>{ selectedMyChar = (selectedMyChar === i) ? null : i; renderMyCharList(); };
     container.appendChild(div);
   });
 }
 
 function postTrade(){
-  if(selectedMyChar === null){
-    showError("❌ キャラ未選択", "キャラを選択してください！");
-    return;
-  }
-  
+  if(selectedMyChar === null){ showNotification("⚠️ キャラを選択してください！", "error", 2000); return; }
   const char = base[selectedMyChar];
   const message = document.getElementById("tradeMessage").value;
-  
-  db.ref("publicTrades").push({
-    owner: playerId,
-    charIndex: selectedMyChar,
-    charName: getCharName(char),
-    message: message,
-    status: "open",
-    timestamp: Date.now()
-  });
-  
-  showSuccess("✅ 出品完了", "キャラを出品しました！", getCharHTML(char));
+  db.ref("publicTrades").push({owner: playerId, charIndex: selectedMyChar, charName: getCharName(char), message: message, status: "open", timestamp: Date.now()});
+  showToast("✅ キャラを出品しました！", "success");
   document.getElementById("tradeMessage").value = "";
   selectedMyChar = null;
   renderMyCharList();
@@ -1410,28 +941,20 @@ function postTrade(){
 function renderIncomingRequests(){
   const container = document.getElementById("incomingRequests");
   container.innerHTML = "";
-  
   db.ref("publicTrades").once("value").then(snap=>{
     const trades = snap.val();
     if(!trades) return;
-    
     let found = false;
     Object.entries(trades).forEach(([id, trade])=>{
-      if(trade.status === "accepted" && trade.owner === playerId && trade.acceptedBy === playerId){
-        return;
-      }
+      if(trade.status === "accepted" && trade.owner === playerId && trade.acceptedBy === playerId) return;
       if(trade.status === "pending" && trade.owner === playerId){
         found = true;
         const div = document.createElement("div");
         div.className = "tradeOffer pending";
-        div.innerHTML = `<div><strong>📩 ${trade.applicantId}</strong> が申請</div>` +
-                        `<div style="font-size:12px; margin:5px 0;">📦 求める: <strong>${trade.charName}</strong></div>` +
-                        `<div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
-        
+        div.innerHTML = `<div><strong>📩 ${trade.applicantId}</strong> が申請</div><div style="font-size:12px; margin:5px 0;">📦 求める: <strong>${trade.charName}</strong></div><div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
         const selectDiv = document.createElement("div");
         selectDiv.style.marginTop = "8px";
         selectDiv.innerHTML = "<div style='font-size:11px; margin-bottom:5px;'>渡すキャラ:</div>";
-        
         base.forEach((c, idx)=>{
           if(!c) return;
           const btn = document.createElement("button");
@@ -1440,28 +963,20 @@ function renderIncomingRequests(){
           btn.style.marginTop = "3px";
           btn.style.fontSize = "11px";
           btn.style.padding = "5px";
-          btn.onclick = ()=>{
-            acceptTrade(id, trade, idx);
-          };
+          btn.onclick = ()=>{ acceptTrade(id, trade, idx); };
           selectDiv.appendChild(btn);
         });
-        
         div.appendChild(selectDiv);
         container.appendChild(div);
       }
     });
-    
     if(!found) container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>申請はありません</div>";
   });
 }
 
 function acceptTrade(tradeId, trade, myCharIdx){
-  db.ref("publicTrades/" + tradeId).update({
-    acceptedCharIndex: myCharIdx,
-    acceptedBy: playerId,
-    status: "accepted"
-  }).then(()=>{
-    showSuccess("✅ 交換確定", "交換が確定しました！");
+  db.ref("publicTrades/" + tradeId).update({acceptedCharIndex: myCharIdx, acceptedBy: playerId, status: "accepted"}).then(()=>{
+    showToast("✅ 交換が確定しました！", "success");
     completeTrade(tradeId, trade, myCharIdx);
   });
 }
@@ -1469,55 +984,116 @@ function acceptTrade(tradeId, trade, myCharIdx){
 function completeTrade(tradeId, trade, myCharIdx){
   const myChar = base[myCharIdx];
   const theirChar = base[trade.charIndex];
-  
-  if(!myChar || !theirChar){
-    showError("❌ キャラ未検出", "キャラが見つかりません");
-    return;
-  }
-  
+  if(!myChar || !theirChar){ showNotification("❌ キャラが見つかりません", "error", 2000); return; }
   base[myCharIdx] = theirChar;
   base[trade.charIndex] = myChar;
-  
   renderBase();
   saveGame();
-  
-  db.ref("publicTrades/" + tradeId).update({
-    status: "completed"
-  });
+  db.ref("publicTrades/" + tradeId).update({status: "completed"});
 }
 
 function renderPublicTrades(){
   const container = document.getElementById("publicTradesList");
   container.innerHTML = "読み込み中...";
-  
   db.ref("publicTrades").once("value").then(snap=>{
     const trades = snap.val();
     container.innerHTML = "";
-    
-    if(!trades){
-      container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>";
-      return;
-    }
-    
+    if(!trades){ container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>"; return; }
     let found = false;
     Object.entries(trades).forEach(([id, trade])=>{
       if(trade.status !== "open" || trade.owner === playerId) return;
-      
       found = true;
       const div = document.createElement("div");
       div.className = "tradeOffer";
-      div.innerHTML = `<div><strong>📤 ${trade.owner}</strong></div>` +
-                      `<div style="font-size:12px; margin:5px 0;">📦 募集: <strong>${trade.charName}</strong></div>` +
-                      `<div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
-      
+      div.innerHTML = `<div><strong>📤 ${trade.owner}</strong></div><div style="font-size:12px; margin:5px 0;">📦 募集: <strong>${trade.charName}</strong></div><div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
       const selectDiv = document.createElement("div");
       selectDiv.style.marginTop = "8px";
       selectDiv.innerHTML = "<div style='font-size:11px; margin-bottom:5px;'>交換するキャラ:</div>";
-      
       base.forEach((c, idx)=>{
         if(!c) return;
         const btn = document.createElement("button");
         btn.textContent = `[${idx}] ${getCharName(c)}`;
         btn.style.width = "100%";
         btn.style.marginTop = "3px";
-        btn
+        btn.style.fontSize = "11px";
+        btn.style.padding = "5px";
+        btn.onclick = ()=>{ applyTrade(id, trade, idx); };
+        selectDiv.appendChild(btn);
+      });
+      div.appendChild(selectDiv);
+      container.appendChild(div);
+    });
+    if(!found) container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>";
+  });
+}
+
+function applyTrade(tradeId, trade, myCharIdx){
+  showDialog("交換確認", "交換申請をしますか？", (confirmed) => {
+    if(confirmed){
+      db.ref("publicTrades/" + tradeId).update({applicantId: playerId, applicantCharIndex: myCharIdx, status: "pending"});
+      showToast("✅ 交換申請を送信しました！", "success");
+      switchTradeTab("offer");
+      renderIncomingRequests();
+    }
+  });
+}
+
+const adminPanel = document.getElementById("adminPanel");
+let isDragging = false, offsetX, offsetY;
+adminPanel.addEventListener("mousedown", (e)=>{ isDragging = true; offsetX = e.clientX - adminPanel.offsetLeft; offsetY = e.clientY - adminPanel.offsetTop; adminPanel.style.right = "auto"; });
+document.addEventListener("mousemove", (e)=>{ if(!isDragging) return; adminPanel.style.left = (e.clientX - offsetX) + "px"; adminPanel.style.top = (e.clientY - offsetY) + "px"; });
+document.addEventListener("mouseup", ()=>{ isDragging = false; });
+
+setInterval(()=>{ let income = base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0); money += income * incomeMultiplier; updateUI(); },1000);
+
+function saveGame(){
+  db.ref("players/" + playerId).set({money, baseLevel, capacity, incomeMultiplier, base, fuseList, lastSave: Date.now()});
+}
+
+setInterval(saveGame, 10000);
+
+function loadGame(){
+  db.ref("players/" + playerId).once("value").then(snapshot=>{
+    const data = snapshot.val();
+    if(!data) return;
+    money = data.money || 0;
+    baseLevel = data.baseLevel || 1;
+    capacity = data.capacity || 10;
+    incomeMultiplier = data.incomeMultiplier || 1;
+    base = data.base || [];
+    fuseList = data.fuseList || [];
+    ensureBaseSlots();
+    renderBase();
+    renderFuse();
+    updateUI();
+  });
+}
+
+function startSpawn(){ spawnInterval=setInterval(spawnWalker,3000); }
+function stopSpawn(){ clearInterval(spawnInterval); }
+document.addEventListener("visibilitychange",()=>{ document.hidden ? stopSpawn() : startSpawn(); });
+
+loadGame();
+ensureBaseSlots();
+renderBase();
+startSpawn();
+updateUI();
+
+db.ref("globalEvent").on("value", snapshot=>{
+  const data = snapshot.val();
+  if(data && data.active){
+    adminEventActive = true;
+    globalLuckMultiplier = data.luck;
+    document.getElementById("adminEventBanner").style.display="block";
+    document.getElementById("eventStatus").innerText="🔥 イベント開催中";
+  } else {
+    adminEventActive = false;
+    globalLuckMultiplier = 1;
+    document.getElementById("adminEventBanner").style.display="none";
+    document.getElementById("eventStatus").innerText="イベント停止中";
+  }
+});
+</script>
+
+</body>
+</html>
