@@ -696,51 +696,77 @@ function useCode(){
     localStorage.setItem("usedCodes",JSON.stringify(usedCodes));
   }
 }
+function createTrade(targetId, myCharIndex){
 
-const tradeRef = db.ref("trades").push();
+  const tradeRef = db.ref("trades").push();
 
-tradeRef.set({
-  from: playerId,
-  to: targetId,
-  fromChar: myCharId,
-  toChar: null,
-  fromReady: false,
-  toReady: false,
-  status: "pending"
-});
-db.ref("trades/"+tradeId).update({
-  toChar: selectedCharId
-});
-db.ref("trades/"+tradeId).on("value", snapshot=>{
-  const trade = snapshot.val();
-  if(!trade) return;
+  tradeRef.set({
+    from: playerId,
+    to: targetId,
+    fromCharIndex: myCharIndex,
+    toCharIndex: null,
+    fromReady: false,
+    toReady: false,
+    status: "pending"
+  });
 
-  if(trade.fromReady && trade.toReady && trade.status==="pending"){
-    completeTrade(tradeId, trade);
-  }
+  alert("交換リクエスト送信！");
+}
+function readyTrade(tradeId){
+
+  db.ref("trades/"+tradeId).once("value").then(snap=>{
+    const trade = snap.val();
+    if(!trade) return;
+
+    if(trade.from === playerId){
+      db.ref("trades/"+tradeId).update({fromReady:true});
+    }else if(trade.to === playerId){
+      db.ref("trades/"+tradeId).update({toReady:true});
+    }
+  });
+}
+db.ref("trades").on("child_added", snapshot=>{
+
+  const tradeId = snapshot.key;
+
+  db.ref("trades/"+tradeId).on("value", snap=>{
+
+    const trade = snap.val();
+    if(!trade) return;
+
+    if(trade.status !== "pending") return;
+
+    if(trade.fromReady && trade.toReady){
+      completeTrade(tradeId, trade);
+    }
+
+  });
+
 });
+
 function completeTrade(tradeId, trade){
 
   db.ref().transaction(data=>{
     if(!data) return data;
 
-    const fromInv = data.players[trade.from].base;
-    const toInv   = data.players[trade.to].base;
+    const fromBase = data.players[trade.from]?.base;
+    const toBase   = data.players[trade.to]?.base;
 
-    if(!fromInv || !toInv) return;
+    if(!fromBase || !toBase) return;
 
-    const fromChar = fromInv[trade.fromChar];
-    const toChar   = toInv[trade.toChar];
+    const fromChar = fromBase[trade.fromCharIndex];
+    const toChar   = toBase[trade.toCharIndex];
 
     if(!fromChar || !toChar) return;
 
-    fromInv[trade.fromChar] = toChar;
-    toInv[trade.toChar] = fromChar;
+    fromBase[trade.fromCharIndex] = toChar;
+    toBase[trade.toCharIndex] = fromChar;
 
     data.trades[tradeId].status = "completed";
 
     return data;
   });
+
 }
 
 /* ===== 合成表示 ===== */
