@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<title>KiichiBrainrot</title>
+<title>ブレインロット（2）</title>
 <style>
 /* 既存 walker 用 */
 .walker{
@@ -328,6 +328,171 @@ button:hover{
 button:active{
   transform:scale(0.95);
 }
+
+/* ===== カスタムモーダル ===== */
+.modalOverlay{
+  display:none;
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.7);
+  z-index:5000;
+  justify-content:center;
+  align-items:center;
+}
+
+.modalOverlay.active{
+  display:flex;
+}
+
+.modal{
+  background:linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  border:2px solid #00d4ff;
+  border-radius:15px;
+  padding:30px;
+  max-width:500px;
+  width:90%;
+  text-align:center;
+  box-shadow:0 0 30px rgba(0,212,255,0.5);
+  animation:modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    transform:scale(0.8) translateY(-50px);
+    opacity:0;
+  }
+  to {
+    transform:scale(1) translateY(0);
+    opacity:1;
+  }
+}
+
+.modal.success{
+  border-color:#4CAF50;
+  box-shadow:0 0 30px rgba(76,175,80,0.5);
+}
+
+.modal.error{
+  border-color:#f44336;
+  box-shadow:0 0 30px rgba(244,67,54,0.5);
+}
+
+.modal.warning{
+  border-color:#ff9800;
+  box-shadow:0 0 30px rgba(255,152,0,0.5);
+}
+
+.modal h2{
+  margin-top:0;
+  font-size:28px;
+  color:#00d4ff;
+  text-shadow:0 0 10px rgba(0,212,255,0.5);
+}
+
+.modal.success h2{
+  color:#4CAF50;
+  text-shadow:0 0 10px rgba(76,175,80,0.5);
+}
+
+.modal.error h2{
+  color:#f44336;
+  text-shadow:0 0 10px rgba(244,67,54,0.5);
+}
+
+.modal.warning h2{
+  color:#ff9800;
+  text-shadow:0 0 10px rgba(255,152,0,0.5);
+}
+
+.modal p{
+  font-size:16px;
+  margin:15px 0;
+  color:#ccc;
+}
+
+.modalButtons{
+  display:flex;
+  gap:10px;
+  margin-top:20px;
+  justify-content:center;
+}
+
+.modalButtons button{
+  flex:1;
+  padding:10px 20px;
+  font-size:14px;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:bold;
+  transition:all 0.2s;
+}
+
+.modalButtons button.confirm{
+  background:#4CAF50;
+  color:white;
+}
+
+.modalButtons button.confirm:hover{
+  background:#45a049;
+  box-shadow:0 0 15px rgba(76,175,80,0.5);
+}
+
+.modalButtons button.cancel{
+  background:#666;
+  color:white;
+}
+
+.modalButtons button.cancel:hover{
+  background:#777;
+}
+
+.modalButtons button.close{
+  background:#2196F3;
+  color:white;
+}
+
+.modalButtons button.close:hover{
+  background:#0b7dda;
+  box-shadow:0 0 15px rgba(33,150,243,0.5);
+}
+
+/* キャラ表示用 */
+.modalCharDisplay{
+  background:#222;
+  border:2px solid #00d4ff;
+  border-radius:10px;
+  padding:15px;
+  margin:15px 0;
+  font-size:14px;
+}
+
+.modalCharDisplay strong{
+  color:#00d4ff;
+  text-shadow:0 0 5px rgba(0,212,255,0.5);
+}
+
+/* フュージョンエフェクト */
+@keyframes fusionFlash {
+  0% { opacity:1; transform:scale(1); }
+  50% { opacity:0.5; transform:scale(1.2); }
+  100% { opacity:1; transform:scale(1); }
+}
+
+.modal.fusion{
+  animation:fusionFlash 0.6s ease-in-out, modalSlideIn 0.3s ease-out;
+  border-color:#ff9800;
+  box-shadow:0 0 50px rgba(255,152,0,0.8);
+}
+
+.modal.fusion h2{
+  color:#ff9800;
+  text-shadow:0 0 15px rgba(255,152,0,0.8);
+  animation:pulse 0.6s ease-in-out;
+}
 </style>
 </head>
 <body>
@@ -358,7 +523,7 @@ const db = firebase.database();
   <div>容量: <span id="cap">10</span></div>
   <div>倍率: x<span id="multiplier">1</span></div>
   <button id="upgradeBtn" onclick="upgradeBase()">リバース</button>
-  <button onclick="resetGame()" style="background:#d32f2f;">リセット</button>
+  <button onclick="showResetConfirm()" style="background:#d32f2f;">リセット</button>
   <hr>
   <div id="codeBox">
     <input id="codeInput" placeholder="コード入力">
@@ -434,6 +599,16 @@ const db = firebase.database();
   👑 管理者イベント発動中
 </div>
 
+<!-- ===== カスタムモーダル ===== -->
+<div class="modalOverlay" id="modalOverlay">
+  <div class="modal" id="modal">
+    <h2 id="modalTitle">タイトル</h2>
+    <p id="modalText">テキスト</p>
+    <div id="modalContent"></div>
+    <div class="modalButtons" id="modalButtons"></div>
+  </div>
+</div>
+
 <script>
 let playerId = localStorage.getItem("playerId");
 if(!playerId){
@@ -448,7 +623,7 @@ let usedCodes = JSON.parse(localStorage.getItem("usedCodes")||"[]");
 
 let selectedMyChar = null;
 let currentTradeTab = "offer";
-let isAlertActive = false; // ★ アラート状態を追跡
+let isModalActive = false; // ★ モーダル状態を追跡
 
 const rarities = [
   {name:"COMMON", color:"#777", rate:1000, chance:49},
@@ -621,6 +796,61 @@ let base=[];
 let fuseList=[];
 let spawnInterval;
 
+/* ===== モーダルシステム ===== */
+function showModal(title, text, type = "normal", buttons = [], content = ""){
+  isModalActive = true;
+  const overlay = document.getElementById("modalOverlay");
+  const modal = document.getElementById("modal");
+  const titleEl = document.getElementById("modalTitle");
+  const textEl = document.getElementById("modalText");
+  const buttonsEl = document.getElementById("modalButtons");
+  const contentEl = document.getElementById("modalContent");
+  
+  titleEl.textContent = title;
+  textEl.textContent = text;
+  contentEl.innerHTML = content;
+  
+  modal.className = "modal " + type;
+  buttonsEl.innerHTML = "";
+  
+  buttons.forEach(btn => {
+    const button = document.createElement("button");
+    button.textContent = btn.text;
+    button.className = btn.class || "close";
+    button.onclick = () => {
+      btn.onClick();
+      closeModal();
+    };
+    buttonsEl.appendChild(button);
+  });
+  
+  overlay.classList.add("active");
+}
+
+function closeModal(){
+  isModalActive = false;
+  document.getElementById("modalOverlay").classList.remove("active");
+}
+
+function showConfirm(title, text, onConfirm, onCancel = null){
+  showModal(title, text, "warning", [
+    { text: "✓ はい", class: "confirm", onClick: onConfirm },
+    { text: "✗ いいえ", class: "cancel", onClick: onCancel || closeModal }
+  ]);
+}
+
+function showSuccess(title, text, content = "", onClose = null){
+  showModal(title, text, "success", [
+    { text: "OK", class: "close", onClick: onClose || closeModal }
+  ], content);
+}
+
+function showError(title, text, onClose = null){
+  showModal(title, text, "error", [
+    { text: "OK", class: "close", onClick: onClose || closeModal }
+  ]);
+}
+
 /* ===== 数字省略 ===== */
 function format(num){
   if(num>=1e42) return (num/1e42).toFixed(1)+"TD";
@@ -649,6 +879,16 @@ function getCharDisplay(c){
   let rate = format(c.rate) + "/s";
   let mutations = (c.mutations && c.mutations.length > 0) ? c.mutations.map(m=>m.icon).join("") : "";
   return `[${attr}] ${getCharName(c)} ${mutations} +${rate}`;
+}
+
+function getCharHTML(c){
+  let attr = c.attribute ? c.attribute.name : "Default";
+  let rate = format(c.rate) + "/s";
+  let mutations = (c.mutations && c.mutations.length > 0) ? c.mutations.map(m=>m.icon).join("") : "";
+  return `<div class="modalCharDisplay">
+    <strong style="color:#00d4ff;">[${attr}]</strong> ${getCharName(c)}<br>
+    ${mutations} <strong>+${rate}</strong>
+  </div>`;
 }
 
 /* ===== スロット保証 ===== */
@@ -710,24 +950,25 @@ function switchTradeTab(tab){
 }
 
 /* ===== リセット ===== */
-function resetGame(){
-  isAlertActive = true; // ★ アラート状態を設定
-  if(!confirm("本当にリセットしますか？データは消えます。")) {
-    isAlertActive = false; // ★ キャンセルされたのでアラート状態を解除
-    return;
-  }
-  localStorage.removeItem("mergeSave");
-  money=0;
-  baseLevel=1;
-  capacity=10;
-  incomeMultiplier=1;
-  base=[];
-  fuseList=[];
-  ensureBaseSlots();
-  renderBase();
-  renderFuse();
-  updateUI();
-  isAlertActive = false; // ★ アラート状態を解除
+function showResetConfirm(){
+  showConfirm(
+    "⚠️ ゲームをリセット",
+    "本当にリセットしますか？\nすべてのデータが消えます。",
+    () => {
+      localStorage.removeItem("mergeSave");
+      money=0;
+      baseLevel=1;
+      capacity=10;
+      incomeMultiplier=1;
+      base=[];
+      fuseList=[];
+      ensureBaseSlots();
+      renderBase();
+      renderFuse();
+      updateUI();
+      showSuccess("🔄 リセット完了", "ゲームがリセットされました");
+    }
+  );
 }
 
 /* ===== 抽選 ===== */
@@ -745,8 +986,8 @@ function getRandomRarity(){
 }
 
 function spawnWalker(){
-  // ★ アラートが出ている場合はスポーンしない
-  if(isAlertActive) return;
+  // ★ モーダルが表示中はスポーンしない
+  if(isModalActive) return;
 
   let baseData = getRandomRarity();
   let data = {...baseData};
@@ -991,9 +1232,7 @@ function renderFuse(){
 
 function fuse(){
   if(fuseList.length !== 5) {
-    isAlertActive = true; // ★ アラート状態を設定
-    alert("5体必要です！（現在 " + fuseList.length + "/5）");
-    isAlertActive = false; // ★ アラート状態を解除
+    showError("❌ 合成失敗", `5体必要です！（現在 ${fuseList.length}/5）`);
     return;
   }
 
@@ -1050,10 +1289,12 @@ function fuse(){
   renderBase();
   renderFuse();
   
-  // ★ アラート状態を設定してから表示
-  isAlertActive = true;
-  alert("✨ " + getCharName(newChar) + " が生成されました！");
-  isAlertActive = false; // ★ アラート状態を解除
+  // ★ ゲーム内演出で表示
+  showSuccess(
+    "✨ 合成成功！", 
+    getCharName(newChar) + " が生成されました！",
+    getCharHTML(newChar)
+  );
 }
 
 /* ===== 強化（リバース） ===== */
@@ -1067,6 +1308,7 @@ function upgradeBase(){
     ensureBaseSlots();
     renderBase();
     updateUI();
+    showSuccess("⬆️ リバース完了", `レベル ${baseLevel} になりました！\n容量 +2、倍率 +0.5`);
   }
 }
 
@@ -1093,29 +1335,23 @@ function useCode(){
   input.value = "";
   if(!code) return;
 
-  // ★ アラート状態を設定
-  isAlertActive = true;
-  
   if(!isAdmin && usedCodes.includes(code)){
-    alert("このコードは既に使用済みです！");
-    isAlertActive = false; // ★ 状態を解除
+    showError("❌ コード使用済み", "このコードは既に使用済みです！");
     return;
   }
 
   if(code === "670402"){
     isAdmin = true;
     document.getElementById("adminPanel").style.display = "block";
-    alert("管理者モード起動");
-    isAlertActive = false; // ★ 状態を解除
+    showSuccess("👑 管理者モード", "管理者権限が有効になりました");
     return;
   }
 
   if(!isAdmin){
     usedCodes.push(code);
     localStorage.setItem("usedCodes",JSON.stringify(usedCodes));
+    showSuccess("✅ コード使用", "コードを使用しました");
   }
-  
-  isAlertActive = false; // ★ 状態を解除
 }
 
 /* ===== 交換パネル ===== */
@@ -1148,11 +1384,8 @@ function renderMyCharList(){
 }
 
 function postTrade(){
-  isAlertActive = true; // ★ アラート状態を設定
-  
   if(selectedMyChar === null){
-    alert("キャラを選択してください！");
-    isAlertActive = false; // ★ 状態を解除
+    showError("❌ キャラ未選択", "キャラを選択してください！");
     return;
   }
   
@@ -1168,12 +1401,10 @@ function postTrade(){
     timestamp: Date.now()
   });
   
-  alert("✅ キャラを出品しました！");
+  showSuccess("✅ 出品完了", "キャラを出品しました！", getCharHTML(char));
   document.getElementById("tradeMessage").value = "";
   selectedMyChar = null;
   renderMyCharList();
-  
-  isAlertActive = false; // ★ 状態を解除
 }
 
 function renderIncomingRequests(){
@@ -1187,7 +1418,7 @@ function renderIncomingRequests(){
     let found = false;
     Object.entries(trades).forEach(([id, trade])=>{
       if(trade.status === "accepted" && trade.owner === playerId && trade.acceptedBy === playerId){
-        return; // スキップ
+        return;
       }
       if(trade.status === "pending" && trade.owner === playerId){
         found = true;
@@ -1197,7 +1428,6 @@ function renderIncomingRequests(){
                         `<div style="font-size:12px; margin:5px 0;">📦 求める: <strong>${trade.charName}</strong></div>` +
                         `<div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
         
-        // キャラ選択
         const selectDiv = document.createElement("div");
         selectDiv.style.marginTop = "8px";
         selectDiv.innerHTML = "<div style='font-size:11px; margin-bottom:5px;'>渡すキャラ:</div>";
@@ -1226,15 +1456,12 @@ function renderIncomingRequests(){
 }
 
 function acceptTrade(tradeId, trade, myCharIdx){
-  isAlertActive = true; // ★ アラート状態を設定
-  
   db.ref("publicTrades/" + tradeId).update({
     acceptedCharIndex: myCharIdx,
     acceptedBy: playerId,
     status: "accepted"
   }).then(()=>{
-    alert("✅ 交換が確定しました！");
-    isAlertActive = false; // ★ 状態を解除
+    showSuccess("✅ 交換確定", "交換が確定しました！");
     completeTrade(tradeId, trade, myCharIdx);
   });
 }
@@ -1244,13 +1471,10 @@ function completeTrade(tradeId, trade, myCharIdx){
   const theirChar = base[trade.charIndex];
   
   if(!myChar || !theirChar){
-    isAlertActive = true; // ★ アラート状態を設定
-    alert("❌ キャラが見つかりません");
-    isAlertActive = false; // ★ 状態を解除
+    showError("❌ キャラ未検出", "キャラが見つかりません");
     return;
   }
   
-  // ローカル交換実行
   base[myCharIdx] = theirChar;
   base[trade.charIndex] = myChar;
   
@@ -1286,7 +1510,6 @@ function renderPublicTrades(){
                       `<div style="font-size:12px; margin:5px 0;">📦 募集: <strong>${trade.charName}</strong></div>` +
                       `<div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
       
-      // キャラ選択
       const selectDiv = document.createElement("div");
       selectDiv.style.marginTop = "8px";
       selectDiv.innerHTML = "<div style='font-size:11px; margin-bottom:5px;'>交換するキャラ:</div>";
@@ -1297,139 +1520,4 @@ function renderPublicTrades(){
         btn.textContent = `[${idx}] ${getCharName(c)}`;
         btn.style.width = "100%";
         btn.style.marginTop = "3px";
-        btn.style.fontSize = "11px";
-        btn.style.padding = "5px";
-        btn.onclick = ()=>{
-          applyTrade(id, trade, idx);
-        };
-        selectDiv.appendChild(btn);
-      });
-      
-      div.appendChild(selectDiv);
-      container.appendChild(div);
-    });
-    
-    if(!found) container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>";
-  });
-}
-
-function applyTrade(tradeId, trade, myCharIdx){
-  isAlertActive = true; // ★ アラート状態を設定
-  
-  if(!confirm("交換申請しますか？")){
-    isAlertActive = false; // ★ 状態を解除
-    return;
-  }
-  
-  db.ref("publicTrades/" + tradeId).update({
-    applicantId: playerId,
-    applicantCharIndex: myCharIdx,
-    status: "pending"
-  });
-  
-  alert("✅ 交換申請を送信しました！");
-  isAlertActive = false; // ★ 状態を解除
-  switchTradeTab("offer");
-  renderIncomingRequests();
-}
-
-/* ===== 管理者パネル ドラッグ機能 ===== */
-const adminPanel = document.getElementById("adminPanel");
-let isDragging = false;
-let offsetX, offsetY;
-
-adminPanel.addEventListener("mousedown", (e)=>{
-  isDragging = true;
-  offsetX = e.clientX - adminPanel.offsetLeft;
-  offsetY = e.clientY - adminPanel.offsetTop;
-  adminPanel.style.right = "auto";
-});
-
-document.addEventListener("mousemove", (e)=>{
-  if(!isDragging) return;
-  adminPanel.style.left = (e.clientX - offsetX) + "px";
-  adminPanel.style.top = (e.clientY - offsetY) + "px";
-});
-
-document.addEventListener("mouseup", ()=>{
-  isDragging = false;
-});
-
-/* ===== 収益 ===== */
-setInterval(()=>{
-  let income = base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0);
-  money += income * incomeMultiplier;
-  updateUI();
-},1000);
-
-/* ===== セーブ ===== */
-function saveGame(){
-  db.ref("players/" + playerId).set({
-    money,
-    baseLevel,
-    capacity,
-    incomeMultiplier,
-    base,
-    fuseList,
-    lastSave: Date.now()
-  });
-}
-
-setInterval(saveGame, 10000);
-
-/* ===== ロード ===== */
-function loadGame(){
-  db.ref("players/" + playerId).once("value").then(snapshot=>{
-    const data = snapshot.val();
-    if(!data) return;
-    money = data.money || 0;
-    baseLevel = data.baseLevel || 1;
-    capacity = data.capacity || 10;
-    incomeMultiplier = data.incomeMultiplier || 1;
-    base = data.base || [];
-    fuseList = data.fuseList || [];
-    ensureBaseSlots();
-    renderBase();
-    renderFuse();
-    updateUI();
-  });
-}
-
-/* ===== タブ監視 ===== */
-function startSpawn(){
-  spawnInterval=setInterval(spawnWalker,3000);
-}
-
-function stopSpawn(){
-  clearInterval(spawnInterval);
-}
-
-document.addEventListener("visibilitychange",()=>{
-  document.hidden ? stopSpawn() : startSpawn();
-});
-
-/* ===== 初期化 ===== */
-loadGame();
-ensureBaseSlots();
-renderBase();
-startSpawn();
-updateUI();
-
-db.ref("globalEvent").on("value", snapshot=>{
-  const data = snapshot.val();
-  if(data && data.active){
-    adminEventActive = true;
-    globalLuckMultiplier = data.luck;
-    document.getElementById("adminEventBanner").style.display="block";
-    document.getElementById("eventStatus").innerText="🔥 イベント開催中";
-  } else {
-    adminEventActive = false;
-    globalLuckMultiplier = 1;
-    document.getElementById("adminEventBanner").style.display="none";
-    document.getElementById("eventStatus").innerText="イベント停止中";
-  }
-});
-</script>
-
-</body>
-</html>
+        btn
