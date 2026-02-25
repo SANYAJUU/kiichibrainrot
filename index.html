@@ -155,30 +155,17 @@ button{cursor:pointer;margin-top:5px;}
 <body>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
-
-<script type="module">
-  // Import the functions you need from the SDKs you need
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
-  // TODO: Add SDKs for Firebase products that you want to use
-  // https://firebase.google.com/docs/web/setup#available-libraries
-
-  // Your web app's Firebase configuration
-  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
-  const firebaseConfig = {
-    apiKey: "AIzaSyCs4uhyRzBC8nSJrwWrd_fBdzIJjR7D3A0",
-    authDomain: "brainrot-3e022.firebaseapp.com",
-    databaseURL: "https://brainrot-3e022-default-rtdb.firebaseio.com",
-    projectId: "brainrot-3e022",
-    storageBucket: "brainrot-3e022.firebasestorage.app",
-    messagingSenderId: "489333416512",
-    appId: "1:489333416512:web:1652e3f5cb8d3801ee75a5",
-    measurementId: "G-HCFMTTL0WV"
-  };
-
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app);
+<script>
+const firebaseConfig = {
+  apiKey: "AIzaSyCs4uhyRzBC8nSJrwWrd_fBdzIJjR7D3A0",
+  authDomain: "brainrot-3e022.firebaseapp.com",
+  databaseURL: "https://brainrot-3e022-default-rtdb.firebaseio.com",
+  projectId: "brainrot-3e022",
+  storageBucket: "brainrot-3e022.firebasestorage.app",
+  messagingSenderId: "489333416512",
+  appId: "1:489333416512:web:1652e3f5cb8d3801ee75a5",
+  measurementId: "G-HCFMTTL0WV"
+};
 </script>
 
 <div id="ui">
@@ -1057,6 +1044,29 @@ animation:pulse 1s infinite alternate;
 
 </div>
 
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
 
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyCs4uhyRzBC8nSJrwWrd_fBdzIJjR7D3A0",
+    authDomain: "brainrot-3e022.firebaseapp.com",
+    databaseURL: "https://brainrot-3e022-default-rtdb.firebaseio.com",
+    projectId: "brainrot-3e022",
+    storageBucket: "brainrot-3e022.firebasestorage.app",
+    messagingSenderId: "489333416512",
+    appId: "1:489333416512:web:1652e3f5cb8d3801ee75a5",
+    measurementId: "G-HCFMTTL0WV"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
 </body>
 </html>
