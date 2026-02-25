@@ -173,6 +173,44 @@ const db = firebase.database();
 </script>
 
 <div id="ui">
+<div id="tradeToggleBtn" onclick="toggleTradePanel()"
+style="
+position:fixed;
+right:20px;
+bottom:20px;
+background:#ff9800;
+color:white;
+padding:12px;
+border-radius:50%;
+cursor:pointer;
+z-index:999;
+">
+🔄
+</div>
+
+<div id="tradePanel" style="
+position:fixed;
+right:-400px;
+bottom:80px;
+width:350px;
+height:500px;
+background:#1e1e1e;
+color:white;
+padding:15px;
+border-radius:15px 0 0 15px;
+box-shadow:-5px 0 15px black;
+transition:0.3s;
+overflow-y:auto;
+z-index:998;
+">
+
+<h3>🌍 交換掲示板</h3>
+
+<div id="createTradeBox"></div>
+<hr>
+<div id="publicTrades"></div>
+
+</div>
 <div id="codeBox" style="margin:10px;">
   <input id="codeInput" placeholder="コード入力">
   <button onclick="useCode()">使用</button>
@@ -928,6 +966,142 @@ function completeTrade(tradeId, trade){
     toBase[trade.toCharIndex] = fromChar;
 
     data.trades[tradeId].status = "completed";
+
+    return data;
+  });
+
+}
+let tradeOpen = false;
+
+function toggleTradePanel(){
+  const panel = document.getElementById("tradePanel");
+  tradeOpen = !tradeOpen;
+  panel.style.right = tradeOpen ? "0px" : "-400px";
+}
+function renderCreateTrade(){
+
+  const box = document.getElementById("createTradeBox");
+  box.innerHTML = "";
+
+  const msgInput = document.createElement("input");
+  msgInput.placeholder = "例：シークレット求む！";
+  msgInput.style.width="100%";
+
+  let selectedIndex = null;
+
+  base.forEach((char,index)=>{
+    const div = document.createElement("div");
+    div.textContent = char.name;
+    div.style.cursor="pointer";
+    div.style.border="1px solid #555";
+    div.style.margin="4px 0";
+    div.style.padding="4px";
+
+    div.onclick = ()=>{
+      selectedIndex = index;
+      renderCreateTrade();
+    };
+
+    if(index===selectedIndex){
+      div.style.background="orange";
+    }
+
+    box.appendChild(div);
+  });
+
+  const btn = document.createElement("button");
+  btn.textContent="📢 公開する";
+  btn.style.width="100%";
+
+  btn.onclick = ()=>{
+    if(selectedIndex===null){
+      alert("キャラ選んで");
+      return;
+    }
+
+    db.ref("publicTrades").push({
+      owner: playerId,
+      charIndex: selectedIndex,
+      message: msgInput.value,
+      status:"open",
+      timestamp:Date.now()
+    });
+  };
+
+  box.prepend(msgInput);
+  box.appendChild(btn);
+}
+db.ref("publicTrades").on("value",snap=>{
+  const trades = snap.val();
+  const container = document.getElementById("publicTrades");
+  container.innerHTML="";
+
+  if(!trades) return;
+
+  Object.entries(trades).forEach(([id,trade])=>{
+
+    if(trade.status!=="open") return;
+
+    const div = document.createElement("div");
+    div.style.border="1px solid #888";
+    div.style.margin="6px 0";
+    div.style.padding="6px";
+
+    div.innerHTML = `
+      <div><b>${trade.owner}</b></div>
+      <div>💬 ${trade.message||"メッセージなし"}</div>
+      <button onclick="applyTrade('${id}')">この人と交換</button>
+    `;
+
+    container.appendChild(div);
+  });
+
+});
+function applyTrade(tradeId){
+
+  const myIndex = prompt("自分のどのキャラ番号を出す？（index）");
+
+  if(myIndex===null) return;
+
+  db.ref("publicTrades/"+tradeId).update({
+    applicant: playerId,
+    applicantCharIndex: Number(myIndex),
+    status:"pending"
+  });
+
+}
+db.ref("publicTrades").on("child_changed",snap=>{
+
+  const trade = snap.val();
+  const tradeId = snap.key;
+
+  if(trade.status==="pending" && trade.owner===playerId){
+
+    if(confirm("交換申請が来ました！承認する？")){
+      completePublicTrade(tradeId,trade);
+    }
+  }
+
+});
+function completePublicTrade(tradeId, trade){
+
+  db.ref().transaction(data=>{
+    if(!data) return data;
+
+    const ownerBase = data.players[trade.owner]?.base;
+    const applicantBase = data.players[trade.applicant]?.base;
+
+    if(!ownerBase || !applicantBase) return;
+
+    const ownerChar = ownerBase[trade.charIndex];
+    const applicantChar = applicantBase[trade.applicantCharIndex];
+
+    if(!ownerChar || !applicantChar) return;
+
+    ownerBase[trade.charIndex] = applicantChar;
+    applicantBase[trade.applicantCharIndex] = ownerChar;
+
+    data.publicTrades[tradeId].status="completed";
 
     return data;
   });
