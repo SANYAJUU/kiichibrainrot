@@ -208,6 +208,37 @@ button{cursor:pointer;margin-top:5px;}
   cursor:pointer;
   z-index:2000;
 }
+/* 右上の一番上に固定 */
+#tradeToggleBtn{
+  position:fixed;
+  top:15px;
+  right:20px;
+  padding:12px 18px;
+  background:#4CAF50;
+  color:white;
+  border:none;
+  border-radius:12px;
+  font-weight:bold;
+  cursor:pointer;
+  z-index:5000;
+}
+
+/* 交換パネル */
+#tradePanel{
+  display:none;
+  position:fixed;
+  top:70px;
+  right:20px;
+  width:360px;
+  height:500px;
+  background:#1e1e1e;
+  color:white;
+  padding:15px;
+  border-radius:15px;
+  box-shadow:0 0 25px black;
+  overflow-y:auto;
+  z-index:4000;
+}
 </style>
 </head>
 <body>
@@ -1243,6 +1274,11 @@ function completeBoardTrade(tradeId, trade){
   });
 
 }
+function toggleTradePanel(){
+  const panel = document.getElementById("tradePanel");
+  panel.style.display =
+    panel.style.display === "block" ? "none" : "block";
+}
 
 /* ===== 合成表示 ===== */
 function renderFuse(){
@@ -1605,6 +1641,14 @@ z-index:2500;
   <div id="tradePanel" class="sidePanel"></div>
   <div id="fusePanel" class="sidePanel"></div>
 
+</div>
+<button id="tradeToggleBtn" onclick="toggleTradePanel()">🔄 キャラ交換</button>
+
+<div id="tradePanel">
+  <h3>🌍 交換掲示板</h3>
+  <div id="createTradeBox"></div>
+  <hr>
+  <div id="publicTrades"></div>
 </div>
 </body>
 </html>
