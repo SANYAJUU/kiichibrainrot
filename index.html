@@ -697,56 +697,51 @@ function useCode(){
   }
 }
 
-push(ref(db, "trades"), {
-  from: myUid,
-  to: targetUid,
+const tradeRef = db.ref("trades").push();
+
+tradeRef.set({
+  from: playerId,
+  to: targetId,
   fromChar: myCharId,
   toChar: null,
   fromReady: false,
   toReady: false,
   status: "pending"
 });
-
-update(ref(db, "trades/"+tradeId), {
+db.ref("trades/"+tradeId).update({
   toChar: selectedCharId
 });
+db.ref("trades/"+tradeId).on("value", snapshot=>{
+  const trade = snapshot.val();
+  if(!trade) return;
 
-update(ref(db, "trades/"+tradeId), {
-  fromReady: true
-});
-
-toReady: true
-
-onValue(ref(db, "trades/"+tradeId), async (snap) => {
-  const trade = snap.val();
-
-  if (trade.fromReady && trade.toReady && trade.status === "pending") {
-
-    await runTransaction(ref(db), (data) => {
-
-      if (!data) return data;
-
-      const fromInv = data.players[trade.from].chars;
-      const toInv   = data.players[trade.to].chars;
-
-      // キャラ存在確認（不正防止）
-      if (!fromInv[trade.fromChar] || !toInv[trade.toChar]) {
-        return; // 中断
-      }
-
-      // 入れ替え
-      const temp = fromInv[trade.fromChar];
-      fromInv[trade.fromChar] = toInv[trade.toChar];
-      toInv[trade.toChar] = temp;
-
-      data.trades[tradeId].status = "completed";
-
-      return data;
-    });
-
+  if(trade.fromReady && trade.toReady && trade.status==="pending"){
+    completeTrade(tradeId, trade);
   }
 });
+function completeTrade(tradeId, trade){
 
+  db.ref().transaction(data=>{
+    if(!data) return data;
+
+    const fromInv = data.players[trade.from].base;
+    const toInv   = data.players[trade.to].base;
+
+    if(!fromInv || !toInv) return;
+
+    const fromChar = fromInv[trade.fromChar];
+    const toChar   = toInv[trade.toChar];
+
+    if(!fromChar || !toChar) return;
+
+    fromInv[trade.fromChar] = toChar;
+    toInv[trade.toChar] = fromChar;
+
+    data.trades[tradeId].status = "completed";
+
+    return data;
+  });
+}
 
 /* ===== 合成表示 ===== */
 function renderFuse(){
