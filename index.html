@@ -461,7 +461,6 @@ const db = firebase.database();
     <input type="text" id="tradeMessage" placeholder="例：シークレット求む！">
     <button onclick="postTrade()" style="width:100%; background:#4CAF50;">📤 出品する</button>
     <hr>
-    <h4>受け取った申請</h4>
     <div class="tradeList" id="incomingRequests"></div>
   </div>
   <div id="findTab" style="display:none;">
@@ -897,6 +896,33 @@ function renderMyCharList(){
   });
 }
 
+function postTrade(){
+  if(selectedMyChar === null){ showNotification("⚠️ キャラを選択してください！", "error", 2000); return; }
+  
+  db.ref("publicTrades").once("value").then(snap=>{
+    const trades = snap.val();
+    let myActiveListings = 0;
+    if(trades){
+      Object.values(trades).forEach(trade=>{
+        if(trade.owner === playerId && trade.status === "open") myActiveListings++;
+      });
+    }
+    
+    if(myActiveListings >= 2){
+      showNotification("⚠️ 同時に出品できるのは2個までです！", "error", 2000);
+      return;
+    }
+    
+    const char = base[selectedMyChar];
+    const message = document.getElementById("tradeMessage").value;
+    db.ref("publicTrades").push({owner: playerId, charIndex: selectedMyChar, charData: JSON.stringify(char), charName: getCharName(char), message: message, status: "open", timestamp: Date.now()});
+    showToast("✅ キャラを出品しました！", "success");
+    document.getElementById("tradeMessage").value = "";
+    selectedMyChar = null;
+    renderMyCharList();
+  });
+}
+
 function renderIncomingRequests(){
   const container = document.getElementById("incomingRequests");
   container.innerHTML = "";
@@ -904,16 +930,15 @@ function renderIncomingRequests(){
     const trades = snap.val();
     if(!trades) return;
     
-    // playerId のオーナーが出品中のトレードを数える
-    let myActiveListings = 0;
-    Object.values(trades).forEach(trade=>{
-      if(trade.owner === playerId && trade.status === "open") myActiveListings++;
-    });
+    let foundIncoming = false;
+    let foundOutgoing = false;
     
-    let found = false;
+    const incomingDiv = document.createElement("div");
+    incomingDiv.innerHTML = "<h5 style='color:#4CAF50; margin:10px 0 5px 0;'>📥 受け取った申請</h5>";
+    
     Object.entries(trades).forEach(([id, trade])=>{
       if(trade.status !== "pending" || trade.owner !== playerId) return;
-      found = true;
+      foundIncoming = true;
       const div = document.createElement("div");
       div.className = "tradeOffer pending";
       div.innerHTML = `<div><strong>📩 ${trade.applicantId}</strong> が申請</div><div style="font-size:12px; margin:5px 0;">📦 求める: <strong>${trade.charName}</strong></div><div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
@@ -932,38 +957,50 @@ function renderIncomingRequests(){
         selectDiv.appendChild(btn);
       });
       div.appendChild(selectDiv);
-      container.appendChild(div);
+      incomingDiv.appendChild(div);
     });
-    if(!found) container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>申請はありません</div>";
+    
+    if(foundIncoming) container.appendChild(incomingDiv);
+    
+    const outgoingDiv = document.createElement("div");
+    outgoingDiv.innerHTML = "<h5 style='color:#2196F3; margin:10px 0 5px 0;'>📤 送った申請</h5>";
+    
+    Object.entries(trades).forEach(([id, trade])=>{
+      if(trade.status !== "pending" || trade.applicantId !== playerId) return;
+      foundOutgoing = true;
+      const div = document.createElement("div");
+      div.className = "tradeOffer pending";
+      const offeredChar = JSON.parse(trade.charData);
+      div.innerHTML = `<div><strong>📨 ${trade.owner}</strong> へ申請中</div><div style="font-size:12px; margin:5px 0;">📦 希望: <strong>${trade.charName}</strong></div><div style="font-size:12px; margin:5px 0;">🎁 提供: <strong>${getCharName(offeredChar)}</strong></div><div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
+      const btnDiv = document.createElement("div");
+      btnDiv.style.marginTop = "8px";
+      const cancelBtn = document.createElement("button");
+      cancelBtn.textContent = "❌ 申請を取り消す";
+      cancelBtn.style.width = "100%";
+      cancelBtn.style.fontSize = "11px";
+      cancelBtn.style.padding = "5px";
+      cancelBtn.style.background = "#d32f2f";
+      cancelBtn.onclick = ()=>{ cancelTradeRequest(id); };
+      btnDiv.appendChild(cancelBtn);
+      div.appendChild(btnDiv);
+      outgoingDiv.appendChild(div);
+    });
+    
+    if(foundOutgoing) container.appendChild(outgoingDiv);
+    
+    if(!foundIncoming && !foundOutgoing){
+      container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>申請はありません</div>";
+    }
   });
 }
 
-function postTrade(){
-  if(selectedMyChar === null){ showNotification("⚠️ キャラを選択してください！", "error", 2000); return; }
-  
-  // 出品中のトレードを数える
-  db.ref("publicTrades").once("value").then(snap=>{
-    const trades = snap.val();
-    let myActiveListings = 0;
-    if(trades){
-      Object.values(trades).forEach(trade=>{
-        if(trade.owner === playerId && trade.status === "open") myActiveListings++;
-      });
+function cancelTradeRequest(tradeId){
+  showDialog("申請を取り消し", "この申請を取り消しますか？", (confirmed) => {
+    if(confirmed){
+      db.ref("publicTrades/" + tradeId).remove();
+      showToast("✅ 申請を取り消しました", "success");
+      renderIncomingRequests();
     }
-    
-    // 既に2個出品中なら拒否
-    if(myActiveListings >= 2){
-      showNotification("⚠️ 同時に出品できるのは2個までです！", "error", 2000);
-      return;
-    }
-    
-    const char = base[selectedMyChar];
-    const message = document.getElementById("tradeMessage").value;
-    db.ref("publicTrades").push({owner: playerId, charIndex: selectedMyChar, charData: JSON.stringify(char), charName: getCharName(char), message: message, status: "open", timestamp: Date.now()});
-    showToast("✅ キャラを出品しました！", "success");
-    document.getElementById("tradeMessage").value = "";
-    selectedMyChar = null;
-    renderMyCharList();
   });
 }
 
@@ -972,14 +1009,12 @@ function acceptTrade(tradeId, trade, myCharIdx){
   const theirChar = JSON.parse(trade.charData);
   if(!myChar){ showNotification("❌ キャラが見つかりません", "error", 2000); return; }
   
-  // ローカルで交換を実行
   base[myCharIdx] = theirChar;
   base[trade.charIndex] = myChar;
   
   renderBase();
   saveGame();
   
-  // Firebase更新
   db.ref("publicTrades/" + tradeId).update({status: "completed"});
   
   showToast("✅ 交換が完了しました！", "success");
@@ -1027,14 +1062,12 @@ function applyTrade(tradeId, trade, myCharIdx){
   const theirChar = JSON.parse(trade.charData);
   if(!myChar){ showNotification("❌ キャラが見つかりません", "error", 2000); return; }
   
-  // ローカルで交換を実行
   base[myCharIdx] = theirChar;
   base[trade.charIndex] = myChar;
   
   renderBase();
   saveGame();
   
-  // Firebase更新
   db.ref("publicTrades/" + tradeId).update({status: "completed", applicantId: playerId});
   
   showToast("✅ 交換が完了しました！", "success");
