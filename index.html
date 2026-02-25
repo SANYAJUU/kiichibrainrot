@@ -430,7 +430,7 @@ const db = firebase.database();
 </div>
 
 <!-- イベントバナー -->
-<div id="adminEventBanner" style="margin-bottom:20px;">
+<div id="adminEventBanner">
   👑 管理者イベント発動中
 </div>
 
@@ -448,6 +448,7 @@ let usedCodes = JSON.parse(localStorage.getItem("usedCodes")||"[]");
 
 let selectedMyChar = null;
 let currentTradeTab = "offer";
+let isAlertActive = false; // ★ アラート状態を追跡
 
 const rarities = [
   {name:"COMMON", color:"#777", rate:1000, chance:49},
@@ -710,7 +711,11 @@ function switchTradeTab(tab){
 
 /* ===== リセット ===== */
 function resetGame(){
-  if(!confirm("本当にリセットしますか？データは消えます。")) return;
+  isAlertActive = true; // ★ アラート状態を設定
+  if(!confirm("本当にリセットしますか？データは消えます。")) {
+    isAlertActive = false; // ★ キャンセルされたのでアラート状態を解除
+    return;
+  }
   localStorage.removeItem("mergeSave");
   money=0;
   baseLevel=1;
@@ -722,6 +727,7 @@ function resetGame(){
   renderBase();
   renderFuse();
   updateUI();
+  isAlertActive = false; // ★ アラート状態を解除
 }
 
 /* ===== 抽選 ===== */
@@ -739,6 +745,9 @@ function getRandomRarity(){
 }
 
 function spawnWalker(){
+  // ★ アラートが出ている場合はスポーンしない
+  if(isAlertActive) return;
+
   let baseData = getRandomRarity();
   let data = {...baseData};
   
@@ -982,7 +991,9 @@ function renderFuse(){
 
 function fuse(){
   if(fuseList.length !== 5) {
+    isAlertActive = true; // ★ アラート状態を設定
     alert("5体必要です！（現在 " + fuseList.length + "/5）");
+    isAlertActive = false; // ★ アラート状態を解除
     return;
   }
 
@@ -1039,7 +1050,10 @@ function fuse(){
   renderBase();
   renderFuse();
   
+  // ★ アラート状態を設定してから表示
+  isAlertActive = true;
   alert("✨ " + getCharName(newChar) + " が生成されました！");
+  isAlertActive = false; // ★ アラート状態を解除
 }
 
 /* ===== 強化（リバース） ===== */
@@ -1079,8 +1093,12 @@ function useCode(){
   input.value = "";
   if(!code) return;
 
+  // ★ アラート状態を設定
+  isAlertActive = true;
+  
   if(!isAdmin && usedCodes.includes(code)){
     alert("このコードは既に使用済みです！");
+    isAlertActive = false; // ★ 状態を解除
     return;
   }
 
@@ -1088,6 +1106,7 @@ function useCode(){
     isAdmin = true;
     document.getElementById("adminPanel").style.display = "block";
     alert("管理者モード起動");
+    isAlertActive = false; // ★ 状態を解除
     return;
   }
 
@@ -1095,6 +1114,8 @@ function useCode(){
     usedCodes.push(code);
     localStorage.setItem("usedCodes",JSON.stringify(usedCodes));
   }
+  
+  isAlertActive = false; // ★ 状態を解除
 }
 
 /* ===== 交換パネル ===== */
@@ -1127,8 +1148,11 @@ function renderMyCharList(){
 }
 
 function postTrade(){
+  isAlertActive = true; // ★ アラート状態を設定
+  
   if(selectedMyChar === null){
     alert("キャラを選択してください！");
+    isAlertActive = false; // ★ 状態を解除
     return;
   }
   
@@ -1148,6 +1172,8 @@ function postTrade(){
   document.getElementById("tradeMessage").value = "";
   selectedMyChar = null;
   renderMyCharList();
+  
+  isAlertActive = false; // ★ 状態を解除
 }
 
 function renderIncomingRequests(){
@@ -1200,12 +1226,15 @@ function renderIncomingRequests(){
 }
 
 function acceptTrade(tradeId, trade, myCharIdx){
+  isAlertActive = true; // ★ アラート状態を設定
+  
   db.ref("publicTrades/" + tradeId).update({
     acceptedCharIndex: myCharIdx,
     acceptedBy: playerId,
     status: "accepted"
   }).then(()=>{
     alert("✅ 交換が確定しました！");
+    isAlertActive = false; // ★ 状態を解除
     completeTrade(tradeId, trade, myCharIdx);
   });
 }
@@ -1215,7 +1244,9 @@ function completeTrade(tradeId, trade, myCharIdx){
   const theirChar = base[trade.charIndex];
   
   if(!myChar || !theirChar){
+    isAlertActive = true; // ★ アラート状態を設定
     alert("❌ キャラが見つかりません");
+    isAlertActive = false; // ★ 状態を解除
     return;
   }
   
@@ -1283,7 +1314,10 @@ function renderPublicTrades(){
 }
 
 function applyTrade(tradeId, trade, myCharIdx){
+  isAlertActive = true; // ★ アラート状態を設定
+  
   if(!confirm("交換申請しますか？")){
+    isAlertActive = false; // ★ 状態を解除
     return;
   }
   
@@ -1294,6 +1328,7 @@ function applyTrade(tradeId, trade, myCharIdx){
   });
   
   alert("✅ 交換申請を送信しました！");
+  isAlertActive = false; // ★ 状態を解除
   switchTradeTab("offer");
   renderIncomingRequests();
 }
