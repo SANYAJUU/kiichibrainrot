@@ -150,6 +150,35 @@ button{cursor:pointer;margin-top:5px;}
 .char{
   position:relative;
 }
+
+#rightMenu{
+  position:fixed;
+  right:20px;
+  top:120px;
+  width:220px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  z-index:2000;
+}
+
+#rightMenu button{
+  padding:10px;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+.sidePanel{
+  display:none;
+  background:#1e1e1e;
+  padding:10px;
+  border-radius:12px;
+  max-height:400px;
+  overflow-y:auto;
+  color:white;
+}
 /* ===== 右上・右下ボタン ===== */
 
 #tradeBtn{
@@ -489,6 +518,20 @@ function updateUI(){
  document.getElementById("cap").innerText = capacity;
  document.getElementById("multiplier").innerText = incomeMultiplier.toFixed(1);
  document.getElementById("upgradeBtn").innerText = "リバース（お金リセット） (" + format(cost) + ")";
+}
+
+function toggleTrade(){
+  const t = document.getElementById("tradePanel");
+  const f = document.getElementById("fusePanel");
+  f.style.display = "none";
+  t.style.display = t.style.display==="block"?"none":"block";
+}
+
+function toggleFuse(){
+  const t = document.getElementById("tradePanel");
+  const f = document.getElementById("fusePanel");
+  t.style.display = "none";
+  f.style.display = f.style.display==="block"?"none":"block";
 }
 
 /* ===== リセット ===== */
@@ -1528,11 +1571,6 @@ animation:pulse 1s infinite alternate;
 
 
 </div>
-<!-- 右上：交換 -->
-<button id="tradeBtn" onclick="openTrade()">🔄 交換</button>
-
-<!-- 右下：合成 -->
-<button id="fuseBtn" onclick="openFuse()">⚗️ 合成</button>
 
 <div id="tradePanel" style="
 display:none;
@@ -1557,6 +1595,15 @@ z-index:2500;
 <div id="publicTrades"></div>
 
 <button onclick="closeTrade()" style="width:100%;margin-top:10px;">閉じる</button>
+
+</div>
+<div id="rightMenu">
+
+  <button onclick="toggleTrade()">🔄 キャラ交換</button>
+  <button onclick="toggleFuse()">🧪 合成</button>
+
+  <div id="tradePanel" class="sidePanel"></div>
+  <div id="fusePanel" class="sidePanel"></div>
 
 </div>
 </body>
