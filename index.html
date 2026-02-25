@@ -689,16 +689,7 @@ function useCode(){
   return;
 }
 
-  // ===== イベント発生 =====
-  if(code === "810777"){
-    alert("5分間の4倍ラック上昇が発動されました。");
-    eventBoost();
-  }
-
-  // ===== キャラ配布 =====
-  if(code === "676869"){
-    giveSecretCharacter();
-  }
+  
 
   if(!isAdmin){
     usedCodes.push(code);
@@ -706,35 +697,56 @@ function useCode(){
   }
 }
 
-function eventBoost(){
-  const originalRate = secretChance;
-  secretChance *= 0.8;
+push(ref(db, "trades"), {
+  from: myUid,
+  to: targetUid,
+  fromChar: myCharId,
+  toChar: null,
+  fromReady: false,
+  toReady: false,
+  status: "pending"
+});
 
-  setTimeout(()=>{
-    secretChance = originalRate;
-    alert("イベント終了！");
-  },300000);
-}
+update(ref(db, "trades/"+tradeId), {
+  toChar: selectedCharId
+});
 
-function giveSecretCharacter(){
-  const pick = secretCharacters[Math.floor(Math.random()*secretCharacters.length)];
+update(ref(db, "trades/"+tradeId), {
+  fromReady: true
+});
 
-  const newChar = {
-    name:"SECRET",
-    character: pick.character,
-    rate: pick.rate,
-    color:"black"
-  };
+toReady: true
 
-  const emptyIndex = base.findIndex(s=>s===null);
-  if(emptyIndex !== -1){
-    base[emptyIndex] = newChar;
-    renderBase();
-    alert("SECRETキャラ獲得！");
-  }else{
-    alert("基地がいっぱいです！");
+onValue(ref(db, "trades/"+tradeId), async (snap) => {
+  const trade = snap.val();
+
+  if (trade.fromReady && trade.toReady && trade.status === "pending") {
+
+    await runTransaction(ref(db), (data) => {
+
+      if (!data) return data;
+
+      const fromInv = data.players[trade.from].chars;
+      const toInv   = data.players[trade.to].chars;
+
+      // キャラ存在確認（不正防止）
+      if (!fromInv[trade.fromChar] || !toInv[trade.toChar]) {
+        return; // 中断
+      }
+
+      // 入れ替え
+      const temp = fromInv[trade.fromChar];
+      fromInv[trade.fromChar] = toInv[trade.toChar];
+      toInv[trade.toChar] = temp;
+
+      data.trades[tradeId].status = "completed";
+
+      return data;
+    });
+
   }
-}
+});
+
 
 /* ===== 合成表示 ===== */
 function renderFuse(){
@@ -980,7 +992,7 @@ function saveGame(){
     lastSave: Date.now()
   });
 }
-setInterval(saveGame,2000);
+setInterval(saveGame,1000);
 
 /* ===== ロード ===== */
 function loadGame(){
