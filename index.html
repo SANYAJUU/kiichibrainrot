@@ -179,32 +179,6 @@ button{cursor:pointer;margin-top:5px;}
   cursor:pointer;
   z-index:2000;
 }
-
-/* ===== ポップアップ画面 ===== */
-
-.popupScreen{
-  display:none;
-  position:fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background:rgba(0,0,0,0.6);
-  z-index:3000;
-}
-
-.popupBox{
-  position:absolute;
-  top:50%;
-  left:50%;
-  transform:translate(-50%, -50%);
-  background:white;
-  padding:30px;
-  border-radius:15px;
-  width:400px;
-  max-height:80%;
-  overflow:auto;
-}
 </style>
 </head>
 <body>
@@ -228,38 +202,7 @@ const db = firebase.database();
 </script>
 
 <div id="ui">
-<div id="tradeToggleBtn" onclick="toggleTradePanel()"
-style="
-position:fixed;
-right:20px;
-bottom:20px;
-background:#ff9800;
-color:white;
-padding:12px;
-border-radius:50%;
-cursor:pointer;
-z-index:999;
-">
-🔄
-</div>
-
-<div id="tradePanel" style="
-position:fixed;
-right:-400px;
-bottom:80px;
-width:350px;
-height:500px;
-background:#1e1e1e;
-color:white;
-padding:15px;
-border-radius:15px 0 0 15px;
-box-shadow:-5px 0 15px black;
-transition:0.3s;
-overflow-y:auto;
-z-index:998;
-">
-
-<h3>🌍 交換掲示板</h3>
+<h3>交換掲示板</h3>
 
 <div id="createTradeBox"></div>
 <hr>
@@ -276,33 +219,6 @@ z-index:998;
 キャッシュ倍率 x<span id="multiplier">1</span><br>
 <button id="upgradeBtn" onclick="upgradeBase()">リバース（お金リセット）</button>
 <button onclick="resetGame()" style="background:red;color:white;">リセット</button>
-
-<div id="tradePanel" style="
-position:fixed;
-right:20px;
-top:80px;
-width:320px;
-background:#222;
-color:white;
-padding:15px;
-border-radius:12px;
-box-shadow:0 0 15px #000;
-z-index:999;
-">
-
-<h3>🔄 キャラ交換</h3>
-
-<input id="tradeTargetId" placeholder="相手プレイヤーID" style="width:100%;margin-bottom:8px;">
-
-<div id="myTradeChars" style="max-height:120px;overflow-y:auto;margin-bottom:8px;"></div>
-
-<button onclick="sendTradeRequest()" style="width:100%;margin-bottom:6px;">交換リクエスト送信</button>
-
-<hr>
-
-<div id="incomingTrades"></div>
-
-</div>
 
 <div id="adminPanel" style="
 display:none;
@@ -556,6 +472,13 @@ function ensureBaseSlots(){
  if(base.length > capacity){
    base = base.slice(0, capacity);
  }
+}
+function openTrade(){
+  document.getElementById("tradePanel").style.display = "block";
+}
+
+function closeTrade(){
+  document.getElementById("tradePanel").style.display = "none";
 }
 
 /* ===== UI更新 ===== */
@@ -1611,22 +1534,30 @@ animation:pulse 1s infinite alternate;
 <!-- 右下：合成 -->
 <button id="fuseBtn" onclick="openFuse()">⚗️ 合成</button>
 
-<!-- 交換画面 -->
-<div id="tradeScreen" class="popupScreen">
-  <div class="popupContent">
-    <button onclick="closeScreens()">✖</button>
-    <h2>交換掲示板</h2>
-    <div id="tradeBoard"></div>
-  </div>
-</div>
+<div id="tradePanel" style="
+display:none;
+position:fixed;
+right:20px;
+top:80px;
+width:350px;
+height:500px;
+background:#1e1e1e;
+color:white;
+padding:15px;
+border-radius:15px;
+box-shadow:0 0 20px black;
+overflow-y:auto;
+z-index:2500;
+">
 
-<!-- 合成画面 -->
-<div id="fuseScreen" class="popupScreen">
-  <div class="popupContent">
-    <button onclick="closeScreens()">✖</button>
-    <h2>合成</h2>
-    <div id="fuseArea"></div>
-  </div>
+<h3>交換掲示板</h3>
+
+<div id="createTradeBox"></div>
+<hr>
+<div id="publicTrades"></div>
+
+<button onclick="closeTrade()" style="width:100%;margin-top:10px;">閉じる</button>
+
 </div>
 </body>
 </html>
