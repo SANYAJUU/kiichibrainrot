@@ -48,6 +48,9 @@ body{
   top:10px;
   left:10px;
   z-index:10;
+  max-width:300px;
+  max-height:300px;
+  overflow-y:auto;
 }
 
 #carpet{
@@ -107,21 +110,6 @@ button{cursor:pointer;margin-top:5px;}
   line-height:1.1;
 }
 
-.rarityBadge{
-  position:absolute;
-  top:4px;
-  right:6px;
-  pointer-events:none;
-}
-
-.rarityText{
-  padding:2px 6px;
-  border-radius:6px;
-  font-size:10px;
-  font-weight:bold;
-  display:inline-block;
-}
-
 .char{
   position:relative;
 }
@@ -131,8 +119,8 @@ button{cursor:pointer;margin-top:5px;}
   position:fixed;
   top:20px;
   right:20px;
-  width:360px;
-  height:500px;
+  width:380px;
+  max-height:650px;
   background:#1e1e1e;
   color:white;
   padding:15px;
@@ -149,21 +137,81 @@ button{cursor:pointer;margin-top:5px;}
   color:#4CAF50;
 }
 
-/* ===== 左下パネル（合成）===== */
+#tradePanel input, #tradePanel select{
+  width:100%;
+  padding:8px;
+  margin:5px 0;
+  box-sizing:border-box;
+  border-radius:5px;
+  border:1px solid #666;
+  background:#222;
+  color:white;
+}
+
+.tradeCharItem{
+  padding:8px;
+  margin:5px 0;
+  border:1px solid #555;
+  border-radius:5px;
+  cursor:pointer;
+  background:#222;
+  transition:all 0.2s;
+}
+
+.tradeCharItem:hover{
+  background:#333;
+  border-color:#4CAF50;
+}
+
+.tradeCharItem.selected{
+  background:#4CAF50;
+  color:black;
+  border-color:#4CAF50;
+}
+
+.tradeList{
+  max-height:300px;
+  overflow-y:auto;
+  border:1px solid #555;
+  border-radius:5px;
+  padding:8px;
+  margin:10px 0;
+}
+
+.tradeOffer{
+  padding:10px;
+  margin:8px 0;
+  border:1px solid #888;
+  border-radius:5px;
+  background:#222;
+}
+
+.tradeOffer.pending{
+  border-color:#ff9800;
+  background:#2a2000;
+}
+
+.tradeOffer.completed{
+  border-color:#4CAF50;
+  background:#002000;
+  opacity:0.6;
+}
+
+/* ===== 右下パネル（合成）===== */
 #fuseArea{
   position:fixed;
   bottom:20px;
-  left:20px;
-  width:280px;
-  height:auto;
-  max-height:600px;
+  right:20px;
+  width:300px;
+  max-height:650px;
   border:4px solid #2196F3;
-  background:#222;
+  background:#1e1e1e;
   display:none;
   flex-direction:column;
-  padding:10px;
+  padding:15px;
   border-radius:15px;
   z-index:3000;
+  box-shadow:0 0 25px black;
 }
 
 #fuseArea h3{
@@ -175,6 +223,10 @@ button{cursor:pointer;margin-top:5px;}
   flex:1;
   overflow-y:auto;
   max-height:400px;
+}
+
+#fuseSlots .char{
+  margin-bottom:5px;
 }
 
 /* ===== ボタンスタイル ===== */
@@ -195,7 +247,7 @@ button{cursor:pointer;margin-top:5px;}
 #fuseToggleBtn{
   position:fixed;
   bottom:15px;
-  left:20px;
+  right:20px;
   padding:12px 18px;
   background:#2196F3;
   color:white;
@@ -217,6 +269,12 @@ button{cursor:pointer;margin-top:5px;}
   padding:15px;
   z-index:1000;
   cursor:move;
+}
+
+#adminPanel button{
+  width:100%;
+  margin:5px 0;
+  padding:8px;
 }
 
 #adminEventBanner{
@@ -244,6 +302,31 @@ button{cursor:pointer;margin-top:5px;}
   border:1px solid #666;
   background:#222;
   color:white;
+  width:150px;
+}
+
+#codeBox button{
+  padding:5px 10px;
+  margin:0 5px;
+}
+
+button{
+  background:#444;
+  color:white;
+  border:none;
+  padding:8px 12px;
+  border-radius:5px;
+  cursor:pointer;
+  font-weight:bold;
+  transition:all 0.2s;
+}
+
+button:hover{
+  background:#666;
+}
+
+button:active{
+  transform:scale(0.95);
 }
 </style>
 </head>
@@ -269,30 +352,25 @@ const db = firebase.database();
 
 <!-- メインUI左上 -->
 <div id="ui">
-  <h3>交換掲示板</h3>
-  <div id="createTradeBox"></div>
+  <h3>📋 ゲーム情報</h3>
+  <div>キャッシュ: <span id="money">0</span></div>
+  <div>リバース: <span id="level">1</span></div>
+  <div>容量: <span id="cap">10</span></div>
+  <div>倍率: x<span id="multiplier">1</span></div>
+  <button id="upgradeBtn" onclick="upgradeBase()">リバース</button>
+  <button onclick="resetGame()" style="background:#d32f2f;">リセット</button>
   <hr>
-  <div id="publicTrades"></div>
+  <div id="codeBox">
+    <input id="codeInput" placeholder="コード入力">
+    <button onclick="useCode()">使用</button>
+  </div>
 </div>
-
-<!-- コード入力 -->
-<div id="codeBox" style="margin:10px;">
-  <input id="codeInput" placeholder="コード入力">
-  <button onclick="useCode()">使用</button>
-</div>
-
-キャッシュ <span id="money">0</span><br>
-リバース <span id="level">1</span><br>
-容量 <span id="cap">10</span><br>
-キャッシュ倍率 x<span id="multiplier">1</span><br>
-<button id="upgradeBtn" onclick="upgradeBase()">リバース（お金リセット）</button>
-<button onclick="resetGame()" style="background:red;color:white;">リセット</button>
 
 <!-- 管理者パネル -->
 <div id="adminPanel">
   <h3 style="color:gold;">👑 管理者パネル</h3>
-  <button onclick="startAdminEvent()">管理者イベント開始</button>
-  <button onclick="stopAdminEvent()">イベント終了</button>
+  <button onclick="startAdminEvent()" style="background:#ff9800;">イベント開始</button>
+  <button onclick="stopAdminEvent()" style="background:#d32f2f;">イベント終了</button>
   <div id="eventStatus" style="margin-top:10px;color:lime;">
     イベント停止中
   </div>
@@ -308,20 +386,47 @@ const db = firebase.database();
 
 <!-- ===== 右上パネル（キャラ交換）===== -->
 <div id="tradePanel">
-  <h3>🌍 交換掲示板</h3>
-  <div id="createTradeBox2"></div>
-  <hr>
-  <div id="publicTrades2"></div>
-  <button onclick="toggleTradePanel()" style="width:100%;margin-top:10px;">閉じる</button>
+  <h3>🌍 キャラ交換</h3>
+  
+  <!-- タブ切り替え -->
+  <div style="display:flex; gap:5px; margin-bottom:10px;">
+    <button onclick="switchTradeTab('offer')" id="tabOffer" style="flex:1; background:#4CAF50;">📤 出品</button>
+    <button onclick="switchTradeTab('find')" id="tabFind" style="flex:1; background:#666;">🔍 募集</button>
+  </div>
+
+  <!-- 出品タブ -->
+  <div id="offerTab">
+    <h4>自分のキャラから選択</h4>
+    <div class="tradeList" id="myCharList"></div>
+    
+    <div>
+      <label>募集説明:</label>
+      <input type="text" id="tradeMessage" placeholder="例：シークレット求む！">
+    </div>
+    
+    <button onclick="postTrade()" style="width:100%; background:#4CAF50;">📤 出品する</button>
+    <hr>
+    
+    <h4>受け取った申請</h4>
+    <div class="tradeList" id="incomingRequests"></div>
+  </div>
+
+  <!-- 募集タブ -->
+  <div id="findTab" style="display:none;">
+    <h4>募集中の交換</h4>
+    <div class="tradeList" id="publicTradesList"></div>
+  </div>
+
+  <button onclick="toggleTradePanel()" style="width:100; margin-top:10px;">✕ 閉じる</button>
 </div>
 
-<!-- ===== 左下パネル（合成）===== -->
+<!-- ===== 右下パネル（合成）===== -->
 <div id="fuseArea">
   <h3>🧪 マシーン</h3>
   <div>合計収益: <span id="fuseTotal">0</span>/s</div>
   <div id="fuseSlots"></div>
-  <button onclick="fuse()" style="width:100%;margin-top:8px;">合成</button>
-  <button onclick="toggleFusePanel()" style="width:100%;margin-top:5px;">閉じる</button>
+  <button onclick="fuse()" style="width:100%; background:#2196F3; margin-top:8px;">合成</button>
+  <button onclick="toggleFusePanel()" style="width:100%; margin-top:5px; background:#d32f2f;">✕ 閉じる</button>
 </div>
 
 <!-- イベントバナー -->
@@ -340,6 +445,9 @@ let adminEventActive = false;
 let globalLuckMultiplier = 1;
 let isAdmin = false;
 let usedCodes = JSON.parse(localStorage.getItem("usedCodes")||"[]");
+
+let selectedMyChar = null;
+let currentTradeTab = "offer";
 
 const rarities = [
   {name:"COMMON", color:"#777", rate:1000, chance:49},
@@ -531,6 +639,17 @@ function format(num){
   return Math.floor(num);
 }
 
+function getCharName(c){
+  return c.name === "SECRET" ? c.character : c.name;
+}
+
+function getCharDisplay(c){
+  let attr = c.attribute ? c.attribute.name : "Default";
+  let rate = format(c.rate) + "/s";
+  let mutations = (c.mutations && c.mutations.length > 0) ? c.mutations.map(m=>m.icon).join("") : "";
+  return `[${attr}] ${getCharName(c)} ${mutations} +${rate}`;
+}
+
 /* ===== スロット保証 ===== */
 function ensureBaseSlots(){
   while(base.length < capacity){
@@ -561,6 +680,7 @@ function toggleTradePanel(){
   } else {
     panel.style.display = "block";
     fuseArea.style.display = "none";
+    renderTradePanel();
   }
 }
 
@@ -568,11 +688,23 @@ function toggleFusePanel(){
   const fuseArea = document.getElementById("fuseArea");
   const panel = document.getElementById("tradePanel");
   
-  if(fuseArea.style.display === "block"){
+  if(fuseArea.style.display === "flex"){
     fuseArea.style.display = "none";
   } else {
     fuseArea.style.display = "flex";
     panel.style.display = "none";
+  }
+}
+
+function switchTradeTab(tab){
+  currentTradeTab = tab;
+  document.getElementById("offerTab").style.display = tab === "offer" ? "block" : "none";
+  document.getElementById("findTab").style.display = tab === "find" ? "block" : "none";
+  document.getElementById("tabOffer").style.background = tab === "offer" ? "#4CAF50" : "#666";
+  document.getElementById("tabFind").style.background = tab === "find" ? "#2196F3" : "#666";
+  
+  if(tab === "find"){
+    renderPublicTrades();
   }
 }
 
@@ -620,7 +752,6 @@ function spawnWalker(){
     };
   }
 
-  // 属性抽選
   let totalChance = attributes.reduce((s,a)=>s+a.chance,0);
   let rand = Math.random()*totalChance;
   let sum = 0;
@@ -632,7 +763,6 @@ function spawnWalker(){
     }
   }
 
-  // 変異抽選
   data.mutations = [];
   if(adminEventActive){
     mutations.forEach(m=>{
@@ -640,7 +770,6 @@ function spawnWalker(){
     });
   }
 
-  // 最終倍率計算
   let totalMultiplier = data.attribute.multiplier;
   data.mutations.forEach(m=>totalMultiplier += m.bonus);
   data.rate = Math.floor(data.rate * totalMultiplier);
@@ -653,7 +782,6 @@ function spawnWalker(){
   let attributeName = data.attribute ? data.attribute.name : "Default";
   let rarityText = data.name === "SECRET" ? data.character : data.name;
 
-  // レア度バッジ
   const raritySpan = document.createElement("span");
   raritySpan.innerText = rarityText;
   switch(data.name){
@@ -782,6 +910,7 @@ function renderFuse(){
     const div = document.createElement("div");
     div.className = "char";
     div.style.background = c.attribute ? c.attribute.color : "#444";
+    div.style.fontSize = "11px";
 
     let mutationIcons = "";
     if(c.mutations && c.mutations.length > 0){
@@ -808,7 +937,7 @@ function renderFuse(){
     raritySpan.style.display="inline-block";
     raritySpan.style.marginTop="2px";
 
-    div.innerHTML = "<div>[" + attributeName + "]</div>" +
+    div.innerHTML = "<div style='font-size:10px;'>[" + attributeName + "]</div>" +
                     "<div>" + raritySpan.outerHTML + "</div>" +
                     "<div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
 
@@ -829,37 +958,17 @@ function renderFuse(){
 
   if(fuseList.length > 0){
     const totalRate = fuseList.reduce((s,c)=>s+(c.rate||0),0);
-    const attrMap = {};
-    fuseList.forEach(c=>{
-      const attrName = c.attribute ? c.attribute.name : "Default";
-      if(!attrMap[attrName]) attrMap[attrName] = 0;
-      attrMap[attrName] += c.rate||0;
-    });
-
-    const infoDiv = document.createElement("div");
-    infoDiv.style.marginTop = "10px";
-    infoDiv.style.fontSize = "11px";
-    infoDiv.innerHTML = "<hr>属性抽選確率<br>";
-    for(const [name, weight] of Object.entries(attrMap)){
-      const percent = Math.round(weight/totalRate*100);
-      infoDiv.innerHTML += name + " : " + percent + "%<br>";
-    }
-
-    infoDiv.innerHTML += "<br>変異抽選確率<br>";
-    mutations.forEach(m=>{
-      let mutRate = fuseList.reduce((sum,c)=>sum + ((c.mutations||[]).some(mt=>mt.name===m.name)?c.rate||0:0),0);
-      let chance = 5 + (mutRate/totalRate)*50;
-      infoDiv.innerHTML += m.name + " : " + Math.round(chance) + "%<br>";
-    });
-    fuseDiv.appendChild(infoDiv);
-
+    
     const totalBaseRate = fuseList.reduce((sum,c)=>sum+(c.baseRate||c.rate),0);
     const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
     if(table){
       const chanceDiv = document.createElement("div");
-      chanceDiv.style.marginTop = "10px";
-      chanceDiv.style.fontSize = "11px";
-      chanceDiv.innerHTML = "<hr><b>合成結果の出現確率</b><br>";
+      chanceDiv.style.marginTop = "8px";
+      chanceDiv.style.fontSize = "10px";
+      chanceDiv.style.padding = "8px";
+      chanceDiv.style.background = "#333";
+      chanceDiv.style.borderRadius = "5px";
+      chanceDiv.innerHTML = "<b>合成結果確率</b><br>";
       const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
       table.results.forEach(r=>{
         let name = r.type === "secret" ? r.value : r.value;
@@ -872,7 +981,10 @@ function renderFuse(){
 }
 
 function fuse(){
-  if(fuseList.length !== 5) return;
+  if(fuseList.length !== 5) {
+    alert("5体必要です！（現在 " + fuseList.length + "/5）");
+    return;
+  }
 
   const used = fuseList.splice(0,5);
   const totalBaseRate = used.reduce((sum,c)=>{
@@ -926,6 +1038,8 @@ function fuse(){
 
   renderBase();
   renderFuse();
+  
+  alert("✨ " + getCharName(newChar) + " が生成されました！");
 }
 
 /* ===== 強化（リバース） ===== */
@@ -983,132 +1097,205 @@ function useCode(){
   }
 }
 
-/* ===== 交換機能 ===== */
-function renderCreateTrade(){
-  const box = document.getElementById("createTradeBox2");
-  box.innerHTML = "";
-  
-  const msgInput = document.createElement("input");
-  msgInput.placeholder = "例：シークレット求む！";
-  msgInput.style.width="100%";
-  msgInput.style.padding = "5px";
-  msgInput.style.marginBottom = "8px";
-  msgInput.style.boxSizing = "border-box";
-  msgInput.style.borderRadius = "5px";
-  msgInput.style.border = "1px solid #666";
-  msgInput.style.background = "#222";
-  msgInput.style.color = "white";
-  
-  let selectedIndex = null;
-  
-  base.forEach((char,index)=>{
-    if(!char) return;
-    const div = document.createElement("div");
-    div.textContent = (char.name === "SECRET" ? char.character : char.name) + " (+" + format(char.rate) + "/s)";
-    div.style.cursor="pointer";
-    div.style.border="1px solid #555";
-    div.style.margin="4px 0";
-    div.style.padding="4px";
-    div.style.borderRadius="4px";
-    div.onclick = ()=>{
-      selectedIndex = index;
-      renderCreateTrade();
-    };
-    if(index===selectedIndex){
-      div.style.background="orange";
-      div.style.color="black";
-    }
-    box.appendChild(div);
-  });
-
-  const btn = document.createElement("button");
-  btn.textContent="📢 公開する";
-  btn.style.width="100%";
-  btn.style.padding = "8px";
-  btn.style.marginTop = "8px";
-  btn.onclick = ()=>{
-    if(selectedIndex===null){
-      alert("キャラ選んで");
-      return;
-    }
-    db.ref("publicTrades").push({
-      owner: playerId,
-      charIndex: selectedIndex,
-      message: msgInput.value,
-      status:"open",
-      timestamp:Date.now()
-    });
-    alert("掲示板に投稿しました！");
-    renderCreateTrade();
-  };
-  
-  box.prepend(msgInput);
-  box.appendChild(btn);
+/* ===== 交換パネル ===== */
+function renderTradePanel(){
+  renderMyCharList();
+  renderIncomingRequests();
 }
 
-db.ref("publicTrades").on("value",snap=>{
-  const trades = snap.val();
-  const container = document.getElementById("publicTrades2");
-  container.innerHTML="";
-  if(!trades) return;
+function renderMyCharList(){
+  const container = document.getElementById("myCharList");
+  container.innerHTML = "";
   
-  Object.entries(trades).forEach(([id,trade])=>{
-    if(trade.status!=="open") return;
-    const div = document.createElement("div");
-    div.style.border="1px solid #888";
-    div.style.margin="6px 0";
-    div.style.padding="6px";
-    div.style.borderRadius="5px";
-    div.innerHTML = "<div><b>🔸 " + trade.owner + "</b></div>" +
-                    "<div style='font-size:12px;margin:4px 0;'>💬 " + (trade.message||"メッセージなし") + "</div>";
+  base.forEach((c, i)=>{
+    if(!c) return;
     
-    const btn = document.createElement("button");
-    btn.textContent = "この人と交換";
-    btn.style.width = "100%";
-    btn.style.padding = "5px";
-    btn.style.marginTop = "4px";
-    btn.onclick = ()=>applyTrade(id);
-    div.appendChild(btn);
+    const div = document.createElement("div");
+    div.className = "tradeCharItem";
+    if(i === selectedMyChar) div.classList.add("selected");
+    
+    div.innerHTML = `<div><strong>[${i}] ${getCharName(c)}</strong></div>` +
+                    `<div style="font-size:11px;">${getCharDisplay(c)}</div>`;
+    
+    div.onclick = ()=>{
+      selectedMyChar = (selectedMyChar === i) ? null : i;
+      renderMyCharList();
+    };
+    
     container.appendChild(div);
   });
-});
+}
 
-function applyTrade(tradeId){
-  const myIndex = prompt("自分のキャラの番号を入力 (0-" + (capacity-1) + ")");
-  if(myIndex===null) return;
-  db.ref("publicTrades/"+tradeId).update({
-    applicant: playerId,
-    applicantCharIndex: Number(myIndex),
-    status:"pending"
+function postTrade(){
+  if(selectedMyChar === null){
+    alert("キャラを選択してください！");
+    return;
+  }
+  
+  const char = base[selectedMyChar];
+  const message = document.getElementById("tradeMessage").value;
+  
+  db.ref("publicTrades").push({
+    owner: playerId,
+    charIndex: selectedMyChar,
+    charName: getCharName(char),
+    message: message,
+    status: "open",
+    timestamp: Date.now()
+  });
+  
+  alert("✅ キャラを出品しました！");
+  document.getElementById("tradeMessage").value = "";
+  selectedMyChar = null;
+  renderMyCharList();
+}
+
+function renderIncomingRequests(){
+  const container = document.getElementById("incomingRequests");
+  container.innerHTML = "";
+  
+  db.ref("publicTrades").once("value").then(snap=>{
+    const trades = snap.val();
+    if(!trades) return;
+    
+    let found = false;
+    Object.entries(trades).forEach(([id, trade])=>{
+      if(trade.status === "accepted" && trade.owner === playerId && trade.acceptedBy === playerId){
+        return; // スキップ
+      }
+      if(trade.status === "pending" && trade.owner === playerId){
+        found = true;
+        const div = document.createElement("div");
+        div.className = "tradeOffer pending";
+        div.innerHTML = `<div><strong>📩 ${trade.applicantId}</strong> が申請</div>` +
+                        `<div style="font-size:12px; margin:5px 0;">📦 求める: <strong>${trade.charName}</strong></div>` +
+                        `<div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
+        
+        // キャラ選択
+        const selectDiv = document.createElement("div");
+        selectDiv.style.marginTop = "8px";
+        selectDiv.innerHTML = "<div style='font-size:11px; margin-bottom:5px;'>渡すキャラ:</div>";
+        
+        base.forEach((c, idx)=>{
+          if(!c) return;
+          const btn = document.createElement("button");
+          btn.textContent = `[${idx}] ${getCharName(c)}`;
+          btn.style.width = "100%";
+          btn.style.marginTop = "3px";
+          btn.style.fontSize = "11px";
+          btn.style.padding = "5px";
+          btn.onclick = ()=>{
+            acceptTrade(id, trade, idx);
+          };
+          selectDiv.appendChild(btn);
+        });
+        
+        div.appendChild(selectDiv);
+        container.appendChild(div);
+      }
+    });
+    
+    if(!found) container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>申請はありません</div>";
   });
 }
 
-db.ref("publicTrades").on("child_changed",snap=>{
-  const trade = snap.val();
-  const tradeId = snap.key;
-  if(trade.status==="pending" && trade.owner===playerId){
-    if(confirm("交換申請が来ました！承認する？")){
-      completeTrade(tradeId,trade);
-    }
-  }
-});
-
-function completeTrade(tradeId, trade){
-  db.ref().transaction(data=>{
-    if(!data) return data;
-    const ownerBase = data.players?.[trade.owner]?.base;
-    const applicantBase = data.players?.[trade.applicant]?.base;
-    if(!ownerBase || !applicantBase) return;
-    
-    const ownerChar = ownerBase[trade.charIndex];
-    const applicantChar = applicantBase[trade.applicantCharIndex];
-    if(!ownerChar || !applicantChar) return;
-    
-    ownerBase[trade.charIndex] = applicantChar;
-    applicantBase[trade.applicantCharIndex] = ownerChar;
-    if(data.publicTrades) data.publicTrades[tradeId].status="completed";
-    return data;
+function acceptTrade(tradeId, trade, myCharIdx){
+  db.ref("publicTrades/" + tradeId).update({
+    acceptedCharIndex: myCharIdx,
+    acceptedBy: playerId,
+    status: "accepted"
+  }).then(()=>{
+    alert("✅ 交換が確定しました！");
+    completeTrade(tradeId, trade, myCharIdx);
   });
+}
+
+function completeTrade(tradeId, trade, myCharIdx){
+  const myChar = base[myCharIdx];
+  const theirChar = base[trade.charIndex];
+  
+  if(!myChar || !theirChar){
+    alert("❌ キャラが見つかりません");
+    return;
+  }
+  
+  // ローカル交換実行
+  base[myCharIdx] = theirChar;
+  base[trade.charIndex] = myChar;
+  
+  renderBase();
+  saveGame();
+  
+  db.ref("publicTrades/" + tradeId).update({
+    status: "completed"
+  });
+}
+
+function renderPublicTrades(){
+  const container = document.getElementById("publicTradesList");
+  container.innerHTML = "読み込み中...";
+  
+  db.ref("publicTrades").once("value").then(snap=>{
+    const trades = snap.val();
+    container.innerHTML = "";
+    
+    if(!trades){
+      container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>";
+      return;
+    }
+    
+    let found = false;
+    Object.entries(trades).forEach(([id, trade])=>{
+      if(trade.status !== "open" || trade.owner === playerId) return;
+      
+      found = true;
+      const div = document.createElement("div");
+      div.className = "tradeOffer";
+      div.innerHTML = `<div><strong>📤 ${trade.owner}</strong></div>` +
+                      `<div style="font-size:12px; margin:5px 0;">📦 募集: <strong>${trade.charName}</strong></div>` +
+                      `<div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
+      
+      // キャラ選択
+      const selectDiv = document.createElement("div");
+      selectDiv.style.marginTop = "8px";
+      selectDiv.innerHTML = "<div style='font-size:11px; margin-bottom:5px;'>交換するキャラ:</div>";
+      
+      base.forEach((c, idx)=>{
+        if(!c) return;
+        const btn = document.createElement("button");
+        btn.textContent = `[${idx}] ${getCharName(c)}`;
+        btn.style.width = "100%";
+        btn.style.marginTop = "3px";
+        btn.style.fontSize = "11px";
+        btn.style.padding = "5px";
+        btn.onclick = ()=>{
+          applyTrade(id, trade, idx);
+        };
+        selectDiv.appendChild(btn);
+      });
+      
+      div.appendChild(selectDiv);
+      container.appendChild(div);
+    });
+    
+    if(!found) container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>";
+  });
+}
+
+function applyTrade(tradeId, trade, myCharIdx){
+  if(!confirm("交換申請しますか？")){
+    return;
+  }
+  
+  db.ref("publicTrades/" + tradeId).update({
+    applicantId: playerId,
+    applicantCharIndex: myCharIdx,
+    status: "pending"
+  });
+  
+  alert("✅ 交換申請を送信しました！");
+  switchTradeTab("offer");
+  renderIncomingRequests();
 }
 
 /* ===== 管理者パネル ドラッグ機能 ===== */
@@ -1153,7 +1340,7 @@ function saveGame(){
   });
 }
 
-setInterval(saveGame,10000);
+setInterval(saveGame, 10000);
 
 /* ===== ロード ===== */
 function loadGame(){
@@ -1170,7 +1357,6 @@ function loadGame(){
     renderBase();
     renderFuse();
     updateUI();
-    renderCreateTrade();
   });
 }
 
