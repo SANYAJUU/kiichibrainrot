@@ -441,12 +441,11 @@ const db = firebase.database();
   <button onclick="showResetDialog()" style="background:#d32f2f; width:100%; margin-top:3px;">リセット</button>
   <hr>
   <div id="codeBox">
-    <input id="codeInput" placeholder="コード入力">
-    <button onclick="openCodePrompt()">👑 管理者コード</button>
+    <button onclick="openCodePrompt()">コード</button>
 
 <script>
 function openCodePrompt(){
-  const code = prompt("👑 管理者パスワードを入力してください");
+  const code = prompt("コードを入力");
 
   if(!code) return;
 
@@ -466,9 +465,9 @@ function openCodePrompt(){
 <<div id="adminPanel">
   <h3 style="color:gold;">👑 管理者パネル</h3>
 
-  <button onclick="addMoney(10000)" style="background:#4CAF50;">💰 +10000</button>
-  <button onclick="addMoney(100000)" style="background:#4CAF50;">💰 +100000</button>
-  <button onclick="addMoney(1000000)" style="background:#4CAF50;">💰 +1000000</button>
+  <button onclick="addMoney(100000000)" style="background:#4CAF50;">💰 +100M</button>
+  <button onclick="addMoney(1000000000)" style="background:#4CAF50;">💰 +1B</button>
+  <button onclick="addMoney(10000000000)" style="background:#4CAF50;">💰 +10B</button>
 
   <hr>
 
