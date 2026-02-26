@@ -914,7 +914,10 @@ function renderBase(){
       }
       raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
       div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
-     div.onclick = null;
+     div.onclick = ()=>{
+  selectedForFusion.push(c);
+  renderFusion();
+};
       div.oncontextmenu = (e)=>{ e.preventDefault(); base[i] = null; renderBase(); };
     } else {
       div.style.background = "#111";
