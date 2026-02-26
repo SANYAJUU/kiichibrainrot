@@ -914,8 +914,15 @@ function renderBase(){
       }
       raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
       div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
-     div.onclick = ()=>{
+      div.onclick = ()=>{
+  if(selectedForFusion.length >= 5){
+    showToast("⚠ これ以上入れません", "error");
+    return;
+  }
+
   selectedForFusion.push(c);
+  base[i] = null;          // ← ここ重要
+  renderBase();
   renderFusion();
 };
       div.oncontextmenu = (e)=>{ e.preventDefault(); base[i] = null; renderBase(); };
@@ -1349,7 +1356,7 @@ setInterval(()=>{ let income = base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0); 
 function saveGame(){
   db.ref("players/" + playerId).set({money, baseLevel, capacity, incomeMultiplier, base, fuseList, lastSave: Date.now()});
 }
-
+localStorage.setItem("baseLevel", baseLevel);
 setInterval(saveGame, 10000);
 
 function loadGame(){
@@ -1362,6 +1369,10 @@ function loadGame(){
     incomeMultiplier = data.incomeMultiplier || 1;
     base = data.base || [];
     fuseList = data.fuseList || [];
+    const savedLevel = localStorage.getItem("baseLevel");
+if(savedLevel){
+  baseLevel = parseInt(savedLevel);
+}
     ensureBaseSlots();
     renderBase();
     renderFuse();
@@ -1374,6 +1385,7 @@ function stopSpawn(){ clearInterval(spawnInterval); }
 document.addEventListener("visibilitychange",()=>{ document.hidden ? stopSpawn() : startSpawn(); });
 
 loadGame();
+updateReverseRequirementDisplay();
 // グローバルイベント監視
 db.ref("globalEvent").on("value", snap => {
   const data = snap.val();
