@@ -1227,7 +1227,7 @@ function postTrade(){
     showNotification("⚠️ キャラを選択してください！", "error", 2000); 
     return; 
   }
-  
+  const db = firebase.database();
   db.ref("publicTrades").once("value").then(snap=>{
     const trades = snap.val();
     let myActiveListings = 0;
@@ -1534,7 +1534,12 @@ function loadGame(){
   baseLevel = save.baseLevel;
   capacity = save.capacity;
   incomeMultiplier = save.incomeMultiplier;
-  base = save.base;
+  base = save.base.map(c => {
+  if(!c) return null;
+  if(c.attribute) c.attribute = attributes.find(a => a.name === c.attribute.name);
+  if(c.mutations) c.mutations = c.mutations.map(m => mutations.find(mut => mut.name === m.name));
+  return c;
+});
 }
 
 setInterval(saveGame, 2000);
