@@ -458,7 +458,6 @@ const db = firebase.database();
   <button onclick="stopAdminEvent()" style="background:#d32f2f;">🛑 イベント終了</button>
 
   <hr>
-  
 
   <button onclick="closeAdminPanel()" style="background:#555;">❌ 閉じる</button>
 
@@ -1185,6 +1184,7 @@ function postTrade(){
     document.getElementById("tradeMessage").value = "";
     selectedMyChar = null;
     renderMyCharList();
+    renderIncomingRequests();
   });
 }
 
@@ -1291,7 +1291,7 @@ function rejectTradeRequest(tradeId){
   showDialog("申請を拒否", "この申請を拒否しますか？", (confirmed) => {
     if(confirmed){
       db.ref("publicTrades/" + tradeId).remove();
-            showToast("❌ 申請を拒否しました", "info");
+      showToast("❌ 申請を拒否しました", "info");
       renderIncomingRequests();
     }
   });
@@ -1359,74 +1359,6 @@ function renderPublicTrades(){
   });
 }
 
-spawnInterval = setInterval(spawnWalker,1000);
-setInterval(()=>{
-  base.forEach(c=>{
-    if(c) money += c.rate * incomeMultiplier;
-  });
-  updateUI();
-},1000);
-
-ensureBaseSlots();
-renderBase();
-renderFuse();
-updateUI();
-updateReverseRequirementDisplay();
-  
-  showToast("✅ 交換申請を送信しました！承認待ちです...", "success");
-  switchTradeTab("offer");
-  renderIncomingRequests();
-}
-
-const adminPanel = document.getElementById("adminPanel");
-let isDragging = false, offsetX, offsetY;
-adminPanel.addEventListener("mousedown", (e)=>{ 
-  isDragging = true; 
-  offsetX = e.clientX - adminPanel.offsetLeft; 
-  offsetY = e.clientY - adminPanel.offsetTop; 
-  adminPanel.style.right = "auto"; 
-});
-
-document.addEventListener("mousemove", (e)=>{ 
-  if(!isDragging) return; 
-  adminPanel.style.left = (e.clientX - offsetX) + "px"; 
-  adminPanel.style.top = (e.clientY - offsetY) + "px"; 
-});
-
-document.addEventListener("mouseup", ()=>{ 
-  isDragging = false; 
-});
-
-// 1秒ごとに収益を加算
-setInterval(()=>{ 
-  let income = base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0); 
-  money += income * incomeMultiplier; 
-  updateUI(); 
-}, 1000);
-
-function saveGame(){
-  localStorage.setItem("brainrotSave", JSON.stringify({
-    money,
-    baseLevel,
-    capacity,
-    incomeMultiplier,
-    base
-  }));
-}
-
-function loadGame(){
-  const save = JSON.parse(localStorage.getItem("brainrotSave"));
-  if(!save) return;
-
-  money = save.money;
-  baseLevel = save.baseLevel;
-  capacity = save.capacity;
-  incomeMultiplier = save.incomeMultiplier;
-  base = save.base;
-}
-
-setInterval(saveGame, 2000);
-
 function startSpawn(){ 
   spawnInterval = setInterval(spawnWalker, 3000); 
 }
@@ -1487,9 +1419,62 @@ db.ref("globalEvent").on("value", snapshot=>{
   }
 });
 
+// ドラッグ機能（管理者パネル）
+const adminPanel = document.getElementById("adminPanel");
+let isDragging = false, offsetX, offsetY;
+
+adminPanel.addEventListener("mousedown", (e)=>{ 
+  isDragging = true; 
+  offsetX = e.clientX - adminPanel.offsetLeft; 
+  offsetY = e.clientY - adminPanel.offsetTop; 
+  adminPanel.style.right = "auto"; 
+});
+
+document.addEventListener("mousemove", (e)=>{ 
+  if(!isDragging) return; 
+  adminPanel.style.left = (e.clientX - offsetX) + "px"; 
+  adminPanel.style.top = (e.clientY - offsetY) + "px"; 
+});
+
+document.addEventListener("mouseup", ()=>{ 
+  isDragging = false; 
+});
+
+// 収益加算（毎秒）
+setInterval(()=>{ 
+  let income = base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0); 
+  money += income * incomeMultiplier; 
+  updateUI(); 
+}, 1000);
+
+// セーブ機能
+function saveGame(){
+  localStorage.setItem("brainrotSave", JSON.stringify({
+    money,
+    baseLevel,
+    capacity,
+    incomeMultiplier,
+    base
+  }));
+}
+
+function loadGame(){
+  const save = JSON.parse(localStorage.getItem("brainrotSave"));
+  if(!save) return;
+
+  money = save.money;
+  baseLevel = save.baseLevel;
+  capacity = save.capacity;
+  incomeMultiplier = save.incomeMultiplier;
+  base = save.base;
+}
+
+setInterval(saveGame, 2000);
+
 // 初期化処理
 ensureBaseSlots();
 renderBase();
+renderFuse();
 startSpawn();
 updateUI();
 updateReverseRequirementDisplay();
