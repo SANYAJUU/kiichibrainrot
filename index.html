@@ -696,6 +696,35 @@ const fuseTable = [
 
 let money=0, baseLevel=1, capacity=10, incomeMultiplier=1, base=[], fuseList=[], spawnInterval;
 
+function renderReverseRequirement(char){
+
+  const nextLevel = char.reverse + 1;
+  const required = reverseRequirements[nextLevel];
+
+  if(!required){
+    return "<div style='color:gold;'>★ 最大レベル</div>";
+  }
+
+  const hasRequired = inventory.some(c =>
+    c.name === required || c.rarity === required
+  );
+
+  const color = hasRequired ? "lime" : "red";
+  const status = hasRequired ? "所持しています" : "持っていません";
+
+  return `
+    <div style="margin-top:8px;">
+      🔥 次のリバース${nextLevel}に必要:
+      <div style="color:${color}; font-weight:bold;">
+        ${required}
+      </div>
+      <div style="font-size:12px; color:${color};">
+        ${status}
+      </div>
+    </div>
+  `;
+}
+
 function showNotification(message, type = "success", duration = 3000) {
   const panel = document.getElementById("notificationPanel");
   panel.textContent = message;
@@ -816,6 +845,48 @@ function getRandomRarity(){
   for(let r of adjusted){ sum+=r.chance; if(rand<=sum) return r; }
 }
 
+function showCharacterReverse(char){
+
+  let html = `
+    <h3>🔥 キャラ強化</h3>
+    <div>${getCharDisplay(char)}</div>
+  `;
+
+  html += renderReverseRequirement(char);
+
+  html += `
+    <button onclick="reverseCharacterFromUI()">リバース</button>
+    <button onclick="closeCharacterReverse()">閉じる</button>
+  `;
+
+  const box = document.createElement("div");
+  box.id = "reverseBox";
+  box.style.position = "fixed";
+  box.style.left = "50%";
+  box.style.top = "50%";
+  box.style.transform = "translate(-50%, -50%)";
+  box.style.background = "#111";
+  box.style.padding = "20px";
+  box.style.border = "2px solid gold";
+  box.style.zIndex = "5000";
+  box.innerHTML = html;
+
+  document.body.appendChild(box);
+
+  window.currentReverseChar = char;
+}
+
+function reverseCharacterFromUI(){
+  if(!window.currentReverseChar) return;
+  reverseCharacter(window.currentReverseChar);
+  closeCharacterReverse();
+}
+
+function closeCharacterReverse(){
+  const box = document.getElementById("reverseBox");
+  if(box) box.remove();
+}
+
 function spawnWalker(){
   let baseData = getRandomRarity();
   let data = {...baseData};
@@ -897,7 +968,9 @@ function renderBase(){
       }
       raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
       div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
-      div.onclick = ()=>{ if(fuseList.length >= 5) return; fuseList.push(c); base[i] = null; renderBase(); renderFuse(); };
+     div.onclick = ()=>{
+  showCharacterReverse(c);
+};
       div.oncontextmenu = (e)=>{ e.preventDefault(); base[i] = null; renderBase(); };
     } else {
       div.style.background = "#111";
