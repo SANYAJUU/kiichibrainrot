@@ -445,37 +445,40 @@ const db = firebase.database();
     <button onclick="openCodePrompt()">👑 管理者コード</button>
 
 <script>
-let isAdmin = false;
-
 function openCodePrompt(){
   const code = prompt("👑 管理者パスワードを入力してください");
 
   if(!code) return;
 
   if(code === "0402810"){
-    enableAdminMode();
+    isAdmin = true;
+    document.body.style.boxShadow = "0 0 40px gold inset";
+    document.getElementById("adminPanel").style.display = "block";
+    showToast("👑 管理者モードON", "success");
   } else {
     showToast("❌ パスワードが違います", "error");
   }
-}
-
-function enableAdminMode(){
-
-  // 毎回実行される（制限なし）
-  isAdmin = true;
-
-  document.body.style.boxShadow = "0 0 40px gold inset";
-
-  showToast("管理者モードON", "success");
 }
 </script>
   </div>
 </div>
 
-<div id="adminPanel">
+<<div id="adminPanel">
   <h3 style="color:gold;">👑 管理者パネル</h3>
-  <button onclick="startAdminEvent()" style="background:#ff9800;">イベント開始</button>
-  <button onclick="stopAdminEvent()" style="background:#d32f2f;">イベント終了</button>
+
+  <button onclick="addMoney(10000)" style="background:#4CAF50;">💰 +10000</button>
+  <button onclick="addMoney(100000)" style="background:#4CAF50;">💰 +100000</button>
+  <button onclick="addMoney(1000000)" style="background:#4CAF50;">💰 +1000000</button>
+
+  <hr>
+
+  <button onclick="startAdminEvent()" style="background:#ff9800;">🎉 イベント開始</button>
+  <button onclick="stopAdminEvent()" style="background:#d32f2f;">🛑 イベント終了</button>
+
+  <hr>
+
+  <button onclick="closeAdminPanel()" style="background:#555;">❌ 閉じる</button>
+
   <div id="eventStatus" style="margin-top:10px;color:lime;">イベント停止中</div>
 </div>
 
@@ -928,6 +931,17 @@ function stopAdminEvent(){
   if(!isAdmin) return;
   db.ref("globalEvent").set({active:false});
   showToast("👑 イベントを終了しました", "info");
+}
+
+function addMoney(amount){
+  if(!isAdmin) return;
+  money += amount;
+  updateUI();
+  showToast("💰 " + format(amount) + " 追加しました", "success");
+}
+
+function closeAdminPanel(){
+  document.getElementById("adminPanel").style.display = "none";
 }
 
 function useCode(){
