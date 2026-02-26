@@ -475,6 +475,7 @@ function openCodePrompt(){
   <button onclick="stopAdminEvent()" style="background:#d32f2f;">🛑 イベント終了</button>
 
   <hr>
+  
 
   <button onclick="closeAdminPanel()" style="background:#555;">❌ 閉じる</button>
 
@@ -593,6 +594,86 @@ const mutations = [
 const secretCharacters = [
   {character:"Piccione Macchina", rate:500000},{character:"Pakrahmatmamat", rate:600000},{character:"Orcalero Orcala", rate:1000000},{character:"Pot Hotspot", rate:2000000},{character:"Nooo My Hotspot", rate:2500000},{character:"Garamaramadungdung", rate:3000000},{character:"Il Sacro Cabrospaghetti", rate:4000000},{character:"La Grande Combinacion", rate:5000000},{character:"Yess My Hotspot", rate:5500000},{character:"67", rate:6700000},{character:"69", rate:13800000},{character:"Ketupat Kepat Prekupat", rate:10000000},{character:"Nooo My Bicicleteira", rate:13500000},{character:"W or L", rate:13000000},{character:"Lirili Ralilu", rate:17000000},{character:"La Esok Sekolah", rate:20000000},{character:"Chimpanzini Kingini", rate:25000000},{character:"Strawberry Elephant", rate:30000000},{character:"Klombo", rate:32000000},{character:"Gorgonzilla", rate:57000000},{character:"Spaghetti Tualetti", rate:40000000},{character:"Cannelloni Dragoni", rate:50000000},{character:"La Crazy Combinacion", rate:60000000},{character:"Chocone Dragone", rate:80000000},{character:"Gigalitraktos Spidorobos", rate:75000000},{character:"Tiramisubmarini", rate:90000000},{character:"Garbagzilla", rate:100000000},{character:"Cannone Maledettone", rate:115000000},{character:"SKIBIDI TOILET", rate:350000000},{character:"YAJUU SENPAI", rate:810000000}
 ];
+const reverseRequirements = {
+  2: "EPIC",
+  3: "LEGENDARY",
+  4: "MYTHIC",
+  5: "GOD",
+  6: "Orcalero Orcala",
+  7: "Pot Hotspot",
+  8: "Garamaramadungdung",
+  9: "La Grande Combinacion",
+  10: "67",
+  11: "69",
+  12: "Lirili Ralilu",
+  13: "La Esok Sekolah",
+  14: "Strawberry Elephant",
+  15: "Spaghetti Tualetti",
+  16: "Cannelloni Dragoni",
+  17: "La Crazy Combinacion",
+  18: "Gigalitraktos Spidorobos",
+  19: "Tiramisubmarini",
+  20: "Cannone Maledettone",
+  21: "SKIBIDI TOILET"
+};
+
+function reverseCharacter(char){
+
+  const nextLevel = char.reverse + 1;
+  const required = reverseRequirements[nextLevel];
+
+  if(!required){
+    alert("これ以上強化できません");
+    return;
+  }
+
+  // 必要キャラを持っているか確認
+  const index = inventory.findIndex(c => 
+    c.name === required || c.rarity === required
+  );
+
+  if(index === -1){
+    alert("必要キャラが足りません: " + required);
+    return;
+  }
+
+  // 必要キャラ消費
+  inventory.splice(index,1);
+
+  char.reverse++;
+  alert("🔥 リバース" + char.reverse + " に進化！");
+  updateUI();
+}
+
+let adminEventActive = false;
+let adminEventEndTime = 0;
+let adminInterval = null;
+
+function startAdminEvent(){
+
+  adminEventActive = true;
+  adminEventEndTime = Date.now() + 5 * 60 * 1000; // 5分
+
+  alert("👑 管理者イベント開始！");
+
+  if(adminInterval) clearInterval(adminInterval);
+
+  adminInterval = setInterval(()=>{
+    const remain = adminEventEndTime - Date.now();
+
+    if(remain <= 0){
+      adminEventActive = false;
+      clearInterval(adminInterval);
+      document.getElementById("adminTimer").innerText = "終了";
+      alert("管理者イベント終了");
+      return;
+    }
+
+    const sec = Math.floor(remain/1000);
+    document.getElementById("adminTimer").innerText = sec + " 秒";
+
+  },1000);
+}
 
 const fuseTable = [
   {min:0, max:10000, results:[{type:"rarity", value:"COMMON", chance:25},{type:"rarity", value:"RARE", chance:35},{type:"rarity", value:"EPIC", chance:40}]},
@@ -922,7 +1003,7 @@ function upgradeBase(){
 function startAdminEvent(){
   if(!isAdmin) return;
   const endTime = Date.now() + (20 * 60 * 1000);
-  db.ref("globalEvent").set({active: true, luck: 67, startTime: Date.now(), endTime: endTime});
+  db.ref("globalEvent").set({active: true, luck: 100, startTime: Date.now(), endTime: endTime});
   showToast("👑 イベントを開始しました", "success");
 }
 
