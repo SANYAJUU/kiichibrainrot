@@ -1168,11 +1168,6 @@ function postTrade(){
       });
     }
     
-    if(myActiveListings >= 2){
-      showNotification("⚠️ 同時に出品できるのは2個までです！", "error", 2000);
-      return;
-    }
-    
     const char = base[selectedMyChar];
     const message = document.getElementById("tradeMessage").value;
     db.ref("publicTrades").push({
