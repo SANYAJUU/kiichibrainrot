@@ -733,7 +733,7 @@ function ensureBaseSlots(){
 }
 
 function updateUI(){
-  const cost = Math.floor(50000*Math.pow(4, baseLevel-1));
+  const cost = Math.floor(100000*Math.pow(4, baseLevel-1));
   document.getElementById("money").innerText = format(money);
   document.getElementById("level").innerText = baseLevel;
   document.getElementById("cap").innerText = capacity;
