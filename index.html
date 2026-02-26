@@ -645,35 +645,8 @@ function reverseCharacter(char){
   updateUI();
 }
 
-let adminEventActive = false;
 let adminEventEndTime = 0;
 let adminInterval = null;
-
-function startAdminEvent(){
-
-  adminEventActive = true;
-  adminEventEndTime = Date.now() + 5 * 60 * 1000; // 5分
-
-  alert("👑 管理者イベント開始！");
-
-  if(adminInterval) clearInterval(adminInterval);
-
-  adminInterval = setInterval(()=>{
-    const remain = adminEventEndTime - Date.now();
-
-    if(remain <= 0){
-      adminEventActive = false;
-      clearInterval(adminInterval);
-      document.getElementById("adminTimer").innerText = "終了";
-      alert("管理者イベント終了");
-      return;
-    }
-
-    const sec = Math.floor(remain/1000);
-    document.getElementById("adminTimer").innerText = sec + " 秒";
-
-  },1000);
-}
 
 const fuseTable = [
   {min:0, max:10000, results:[{type:"rarity", value:"COMMON", chance:25},{type:"rarity", value:"RARE", chance:35},{type:"rarity", value:"EPIC", chance:40}]},
