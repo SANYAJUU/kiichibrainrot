@@ -429,6 +429,12 @@ const firebaseConfig = {
   measurementId: "G-HCFMTTL0WV"
 };
 firebase.initializeApp(firebaseConfig);
+db.ref("globalMessage").on("value", snapshot=>{
+  const data = snapshot.val();
+  if(!data) return;
+
+  showNotification("📢 管理者メッセージ:\n" + data.text, "success", 5000);
+});
 const db = firebase.database();
 </script>
 
@@ -447,10 +453,16 @@ const db = firebase.database();
 
 <div id="adminPanel">
   <h3 style="color:gold;">👑 管理者パネル</h3>
-
-  <button onclick="addMoney(100000000)" style="background:#4CAF50;">💰 +100M</button>
+  <hr>
+<h4 style="color:cyan;">📢 全体メッセージ</h4>
+<input type="text" id="globalMsgInput" placeholder="全員に送るメッセージ">
+<button onclick="sendGlobalMessage()" style="background:#2196F3;">
+📢 送信
+</button>
+  <hr>
   <button onclick="addMoney(1000000000)" style="background:#4CAF50;">💰 +1B</button>
-  <button onclick="addMoney(10000000000)" style="background:#4CAF50;">💰 +10B</button>
+  <button onclick="addMoney(100000000000)" style="background:#4CAF50;">💰 +100B</button>
+  <button onclick="addMoney(1000000000000)" style="background:#4CAF50;">💰 +1T</button>
 
   <hr>
 
@@ -654,6 +666,24 @@ function openCodePrompt(){
   } else {
     showToast("❌ パスワードが違います", "error");
   }
+}
+
+function sendGlobalMessage(){
+  if(!isAdmin){
+    showToast("❌ 管理者のみ使用可能", "error");
+    return;
+  }
+
+  const msg = document.getElementById("globalMsgInput").value;
+  if(!msg) return;
+
+  db.ref("globalMessage").set({
+    text: msg,
+    timestamp: Date.now()
+  });
+
+  document.getElementById("globalMsgInput").value = "";
+  showToast("📢 全員に送信しました", "success");
 }
 
 function showNotification(message, type = "success", duration = 3000) {
