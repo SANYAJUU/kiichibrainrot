@@ -784,12 +784,24 @@ function showResetDialog(){
 }
 
 function getRandomRarity(){
-  const adjusted = rarities.map(r=>({...r, chance: r.chance * globalLuckMultiplier }));
+  const adjusted = rarities.map(r=>{
+    let chance = r.chance;
+
+    if(adminEventActive && r.name === "SECRET"){
+      chance *= 67;
+    }
+
+    return {...r, chance};
+  });
+
   const total = adjusted.reduce((s,r)=>s+r.chance,0);
   const rand = Math.random()*total;
   let sum=0;
-  for(let r of adjusted){ sum+=r.chance; if(rand<=sum) return r; }
-  return adjusted[adjusted.length - 1];
+  for(let r of adjusted){
+    sum+=r.chance;
+    if(rand<=sum) return r;
+  }
+  return adjusted[adjusted.length-1];
 }
 
 function spawnWalker(){
@@ -1072,15 +1084,40 @@ function updateReverseRequirementDisplay(){
 
 function startAdminEvent(){
   if(!isAdmin) return;
-  const endTime = Date.now() + (20 * 60 * 1000);
-  db.ref("globalEvent").set({active: true, luck: 100, startTime: Date.now(), endTime: endTime});
-  showToast("👑 イベントを開始しました", "success");
+
+  adminEventActive = true;
+  globalLuckMultiplier = 67;
+
+  const duration = 20 * 60;
+  let remaining = duration;
+
+  document.getElementById("adminEventBanner").style.display = "block";
+
+  clearInterval(eventCountdownInterval);
+  eventCountdownInterval = setInterval(()=>{
+    remaining--;
+
+    const min = Math.floor(remaining/60);
+    const sec = remaining%60;
+    document.getElementById("adminEventTime").innerText =
+      `${min}:${sec.toString().padStart(2,"0")}`;
+
+    if(remaining <= 0){
+      stopAdminEvent();
+    }
+  },1000);
+
+  showToast("👑 67倍イベント開始", "success");
 }
 
 function stopAdminEvent(){
-  if(!isAdmin) return;
-  db.ref("globalEvent").set({active:false});
-  showToast("👑 イベントを終了しました", "info");
+  adminEventActive = false;
+  globalLuckMultiplier = 1;
+
+  clearInterval(eventCountdownInterval);
+  document.getElementById("adminEventBanner").style.display = "none";
+
+  showToast("イベント終了", "info");
 }
 
 function addMoney(amount){
@@ -1245,7 +1282,6 @@ function acceptTradeRequest(tradeId, trade){
   db.ref("publicTrades/" + tradeId).update({status: "completed", ownerApproved: true});
   
   renderBase();
-  saveGame();
   
   showToast("✅ 交換が完了しました！", "success");
   renderIncomingRequests();
@@ -1356,45 +1392,27 @@ setInterval(()=>{
 }, 1000);
 
 function saveGame(){
-  db.ref("players/" + playerId).set({
-    money, 
-    baseLevel, 
-    capacity, 
-    incomeMultiplier, 
-    base, 
-    fuseList, 
-    selectedForFusion,
-    lastSave: Date.now()
-  });
+  localStorage.setItem("brainrotSave", JSON.stringify({
+    money,
+    baseLevel,
+    capacity,
+    incomeMultiplier,
+    base
+  }));
 }
-
-localStorage.setItem("baseLevel", baseLevel);
-setInterval(saveGame, 10000);
 
 function loadGame(){
-  db.ref("players/" + playerId).once("value").then(snapshot=>{
-    const data = snapshot.val();
-    if(!data) return;
-    money = data.money || 0;
-    baseLevel = data.baseLevel || 1;
-    capacity = data.capacity || 10;
-    incomeMultiplier = data.incomeMultiplier || 1;
-    base = data.base || [];
-    fuseList = data.fuseList || [];
-    selectedForFusion = data.selectedForFusion || [];
-    
-    const savedLevel = localStorage.getItem("baseLevel");
-    if(savedLevel){
-      baseLevel = parseInt(savedLevel);
-    }
-    
-    ensureBaseSlots();
-    renderBase();
-    renderFuse();
-    updateUI();
-    updateReverseRequirementDisplay();
-  });
+  const save = JSON.parse(localStorage.getItem("brainrotSave"));
+  if(!save) return;
+
+  money = save.money;
+  baseLevel = save.baseLevel;
+  capacity = save.capacity;
+  incomeMultiplier = save.incomeMultiplier;
+  base = save.base;
 }
+
+setInterval(saveGame, 2000);
 
 function startSpawn(){ 
   spawnInterval = setInterval(spawnWalker, 3000); 
@@ -1411,6 +1429,7 @@ document.addEventListener("visibilitychange", ()=>{
 // ゲーム読み込み
 loadGame();
 updateReverseRequirementDisplay();
+saveGame();
 
 // グローバルイベント監視
 db.ref("globalEvent").on("value", snapshot=>{
