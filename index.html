@@ -814,7 +814,9 @@ function spawnWalker(){
   let baseData = getRandomRarity();
   let data = {...baseData};
   if(baseData.name === "SECRET"){
-    const pick = secretCharacters[Math.floor(Math.random()*secretCharacters.length)];
+    // ===== 修正: 確率付きシークレットキャラ選択 =====
+    const selectedSecret = selectWeightedSecret();
+    const pick = secretCharacters.find(s => s.character === selectedSecret);
     data = {name:"SECRET", character: pick.character, rate: pick.rate, color:"black"};
   }
   let totalChance = attributes.reduce((s,a)=>s+a.chance,0);
@@ -867,6 +869,69 @@ function spawnWalker(){
     const emptyIndex = base.findIndex(s=>s===null);
     if(emptyIndex!==-1){ base[emptyIndex]=data; renderBase(); div.remove(); clearInterval(move); }
   };
+}
+
+// ===== 新規追加: 重み付きランダム選択関数 =====
+function selectWeightedSecret(){
+  // 確率の定義（相対値）
+  // Piccione Macchina: 1/15 ≈ 約6.67%
+  // KOU CHOU: 1/200000 ≈ 約0.0005%
+  // 間のキャラクターは段階的に減少
+  
+  const weights = [
+    15,           // Piccione Macchina - 最も高確率
+    14,           // Pakrahmatmamat
+    13,           // Orcalero Orcala
+    12,           // Pot Hotspot
+    11,           // Nooo My Hotspot
+    10,           // Garamaramadungdung
+    9,            // Il Sacro Cabrospaghetti
+    8,            // La Grande Combinacion
+    7,            // Yess My Hotspot
+    6,            // 67
+    5,            // 69
+    4.5,          // Ketupat Kepat Prekupat
+    4,            // Nooo My Bicicleteira
+    3.5,          // W or L
+    3,            // Lirili Ralilu
+    2.5,          // La Esok Sekolah
+    2,            // Chimpanzini Kingini
+    1.5,          // Strawberry Elephant
+    1.2,          // Klombo
+    1,            // Gorgonzilla
+    0.8,          // Spaghetti Tualetti
+    0.6,          // Cannelloni Dragoni
+    0.4,          // La Crazy Combinacion
+    0.3,          // Chocone Dragone
+    0.2,          // Gigalitraktos Spidorobos
+    0.15,         // Tiramisubmarini
+    0.1,          // Garbagzilla
+    0.08,         // Cannone Maledettone
+    0.02,         // SKIBIDI TOILET
+    0.01,         // YAJUU SENPAI
+    0.001         // KOU CHOU - 最も低確率
+  ];
+  
+  // 累積重みを計算
+  let cumulativeWeights = [];
+  let total = 0;
+  for(let w of weights){
+    total += w;
+    cumulativeWeights.push(total);
+  }
+  
+  // ランダムな値を生成
+  let random = Math.random() * total;
+  
+  // 該当するキャラを選択
+  for(let i = 0; i < cumulativeWeights.length; i++){
+    if(random < cumulativeWeights[i]){
+      return secretCharacters[i].character;
+    }
+  }
+  
+  // フォールバック
+  return secretCharacters[secretCharacters.length - 1].character;
 }
 
 function renderBase(){
