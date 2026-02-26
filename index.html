@@ -430,13 +430,13 @@ const firebaseConfig = {
   measurementId: "G-HCFMTTL0WV"
 };
 firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 db.ref("globalMessage").on("value", snapshot=>{
   const data = snapshot.val();
   if(!data) return;
 
   showNotification("📢 管理者メッセージ:\n" + data.text, "success", 5000);
 });
-const db = firebase.database();
 </script>
 
 <div id="ui">
