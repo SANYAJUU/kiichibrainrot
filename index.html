@@ -442,23 +442,6 @@ const db = firebase.database();
   <hr>
   <div id="codeBox">
     <button onclick="openCodePrompt()">コード</button>
-
-<script>
-function openCodePrompt(){
-  const code = prompt("コードを入力");
-
-  if(!code) return;
-
-  if(code === "0402810"){
-    isAdmin = true;
-    document.body.style.boxShadow = "0 0 40px gold inset";
-    document.getElementById("adminPanel").style.display = "block";
-    showToast("👑 管理者モードON", "success");
-  } else {
-    showToast("❌ パスワードが違います", "error");
-  }
-}
-</script>
   </div>
 </div>
 
@@ -568,6 +551,7 @@ if(!playerId){
 let adminEventActive = false, globalLuckMultiplier = 1, isAdmin = false;
 let usedCodes = JSON.parse(localStorage.getItem("usedCodes")||"[]");
 let selectedMyChar = null, currentTradeTab = "offer", dialogCallback = null;
+let selectedForFusion = [];
 let eventCountdownInterval = null;
 
 const rarities = [
@@ -607,6 +591,7 @@ const mutations = [
 const secretCharacters = [
   {character:"Piccione Macchina", rate:500000},{character:"Pakrahmatmamat", rate:600000},{character:"Orcalero Orcala", rate:1000000},{character:"Pot Hotspot", rate:2000000},{character:"Nooo My Hotspot", rate:2500000},{character:"Garamaramadungdung", rate:3000000},{character:"Il Sacro Cabrospaghetti", rate:4000000},{character:"La Grande Combinacion", rate:5000000},{character:"Yess My Hotspot", rate:5500000},{character:"67", rate:6700000},{character:"69", rate:13800000},{character:"Ketupat Kepat Prekupat", rate:10000000},{character:"Nooo My Bicicleteira", rate:13500000},{character:"W or L", rate:13000000},{character:"Lirili Ralilu", rate:17000000},{character:"La Esok Sekolah", rate:20000000},{character:"Chimpanzini Kingini", rate:25000000},{character:"Strawberry Elephant", rate:30000000},{character:"Klombo", rate:32000000},{character:"Gorgonzilla", rate:57000000},{character:"Spaghetti Tualetti", rate:40000000},{character:"Cannelloni Dragoni", rate:50000000},{character:"La Crazy Combinacion", rate:60000000},{character:"Chocone Dragone", rate:80000000},{character:"Gigalitraktos Spidorobos", rate:75000000},{character:"Tiramisubmarini", rate:90000000},{character:"Garbagzilla", rate:100000000},{character:"Cannone Maledettone", rate:115000000},{character:"SKIBIDI TOILET", rate:350000000},{character:"YAJUU SENPAI", rate:810000000}
 ];
+
 const reverseRequirements = {
   2: "EPIC",
   3: "LEGENDARY",
@@ -630,37 +615,6 @@ const reverseRequirements = {
   21: "SKIBIDI TOILET"
 };
 
-function reverseCharacter(char){
-
-  const nextLevel = char.reverse + 1;
-  const required = reverseRequirements[nextLevel];
-
-  if(!required){
-    alert("これ以上強化できません");
-    return;
-  }
-
-  // 必要キャラを持っているか確認
-  const index = inventory.findIndex(c => 
-    c.name === required || c.rarity === required
-  );
-
-  if(index === -1){
-    alert("必要キャラが足りません: " + required);
-    return;
-  }
-
-  // 必要キャラ消費
-  inventory.splice(index,1);
-
-  char.reverse++;
-  alert("🔥 リバース" + char.reverse + " に進化！");
-  updateUI();
-}
-
-let adminEventEndTime = 0;
-let adminInterval = null;
-
 const fuseTable = [
   {min:0, max:10000, results:[{type:"rarity", value:"COMMON", chance:25},{type:"rarity", value:"RARE", chance:35},{type:"rarity", value:"EPIC", chance:40}]},
   {min:10000, max:50000, results:[{type:"rarity", value:"COMMON", chance:20},{type:"rarity", value:"RARE", chance:25},{type:"rarity", value:"EPIC", chance:55}]},
@@ -682,33 +636,18 @@ const fuseTable = [
 
 let money=0, baseLevel=1, capacity=10, incomeMultiplier=1, base=[], fuseList=[], spawnInterval;
 
-function renderReverseRequirement(char){
+function openCodePrompt(){
+  const code = prompt("コードを入力");
+  if(!code) return;
 
-  const nextLevel = char.reverse + 1;
-  const required = reverseRequirements[nextLevel];
-
-  if(!required){
-    return "<div style='color:gold;'>★ 最大レベル</div>";
+  if(code === "0402810"){
+    isAdmin = true;
+    document.body.style.boxShadow = "0 0 40px gold inset";
+    document.getElementById("adminPanel").style.display = "block";
+    showToast("👑 管理者モードON", "success");
+  } else {
+    showToast("❌ パスワードが違います", "error");
   }
-
-  const hasRequired = inventory.some(c =>
-    c.name === required || c.rarity === required
-  );
-
-  const color = hasRequired ? "lime" : "red";
-  const status = hasRequired ? "所持しています" : "持っていません";
-
-  return `
-    <div style="margin-top:8px;">
-      🔥 次のリバース${nextLevel}に必要:
-      <div style="color:${color}; font-weight:bold;">
-        ${required}
-      </div>
-      <div style="font-size:12px; color:${color};">
-        ${status}
-      </div>
-    </div>
-  `;
 }
 
 function showNotification(message, type = "success", duration = 3000) {
@@ -767,7 +706,9 @@ function format(num){
   return Math.floor(num);
 }
 
-function getCharName(c){ return c.name === "SECRET" ? c.character : c.name; }
+function getCharName(c){ 
+  return c.name === "SECRET" ? c.character : c.name; 
+}
 
 function getCharDisplay(c){
   let attr = c.attribute ? c.attribute.name : "Default";
@@ -793,15 +734,24 @@ function updateUI(){
 function toggleTradePanel(){
   const panel = document.getElementById("tradePanel");
   const fuseArea = document.getElementById("fuseArea");
-  if(panel.style.display === "block"){ panel.style.display = "none"; }
-  else { panel.style.display = "block"; fuseArea.style.display = "none"; renderTradePanel(); }
+  if(panel.style.display === "block"){ 
+    panel.style.display = "none"; 
+  } else { 
+    panel.style.display = "block"; 
+    fuseArea.style.display = "none"; 
+    renderTradePanel(); 
+  }
 }
 
 function toggleFusePanel(){
   const fuseArea = document.getElementById("fuseArea");
   const panel = document.getElementById("tradePanel");
-  if(fuseArea.style.display === "flex"){ fuseArea.style.display = "none"; }
-  else { fuseArea.style.display = "flex"; panel.style.display = "none"; }
+  if(fuseArea.style.display === "flex"){ 
+    fuseArea.style.display = "none"; 
+  } else { 
+    fuseArea.style.display = "flex"; 
+    panel.style.display = "none"; 
+  }
 }
 
 function switchTradeTab(tab){
@@ -816,8 +766,18 @@ function switchTradeTab(tab){
 function showResetDialog(){
   showDialog("リセット確認", "本当にリセットしますか？", (confirmed) => {
     if(confirmed){
-      money=0; baseLevel=1; capacity=10; incomeMultiplier=1; base=[]; fuseList=[];
-      ensureBaseSlots(); renderBase(); renderFuse(); updateUI();
+      money=0; 
+      baseLevel=1; 
+      capacity=10; 
+      incomeMultiplier=1; 
+      base=[]; 
+      fuseList=[];
+      selectedForFusion = [];
+      ensureBaseSlots(); 
+      renderBase(); 
+      renderFuse(); 
+      updateUI();
+      updateReverseRequirementDisplay();
       showToast("✅ ゲームをリセットしました", "success");
     }
   });
@@ -829,9 +789,8 @@ function getRandomRarity(){
   const rand = Math.random()*total;
   let sum=0;
   for(let r of adjusted){ sum+=r.chance; if(rand<=sum) return r; }
+  return adjusted[adjusted.length - 1];
 }
-
-
 
 function spawnWalker(){
   let baseData = getRandomRarity();
@@ -852,6 +811,8 @@ function spawnWalker(){
   let totalMultiplier = data.attribute.multiplier;
   data.mutations.forEach(m=>totalMultiplier += m.bonus);
   data.rate = Math.floor(data.rate * totalMultiplier);
+  data.baseRate = data.rate;
+  data.reverse = 0;
 
   const div = document.createElement("div");
   div.className = "walker";
@@ -871,9 +832,11 @@ function spawnWalker(){
     case "GOD": raritySpan.style.background="gray"; raritySpan.style.color="cyan"; break;
     case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
   }
-  raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
+  raritySpan.style.padding="2px 6px"; 
+  raritySpan.style.borderRadius="6px"; 
+  raritySpan.style.fontSize="10px";
   let mutationIcons = (data.mutations && data.mutations.length > 0) ? data.mutations.map(m=>m.icon).join("") : "";
-  div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>+" + format(data.rate) + "/s</div>";
+  div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(data.rate) + "/s</div>";
   div.style.top = "-100px";
   document.body.appendChild(div);
   let pos=-100;
@@ -886,7 +849,6 @@ function spawnWalker(){
     const emptyIndex = base.findIndex(s=>s===null);
     if(emptyIndex!==-1){ base[emptyIndex]=data; renderBase(); div.remove(); clearInterval(move); }
   };
-  data.baseRate = data.rate;
 }
 
 function renderBase(){
@@ -912,20 +874,26 @@ function renderBase(){
         case "GOD": raritySpan.style.background="gray"; raritySpan.style.color="cyan"; break;
         case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
       }
-      raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
+      raritySpan.style.padding="2px 6px"; 
+      raritySpan.style.borderRadius="6px"; 
+      raritySpan.style.fontSize="10px";
       div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
       div.onclick = ()=>{
-  if(selectedForFusion.length >= 5){
-    showToast("⚠ これ以上入れません", "error");
-    return;
-  }
+        if(selectedForFusion.length >= 5){
+          showToast("⚠ これ以上入れません", "error");
+          return;
+        }
 
-  selectedForFusion.push(c);
-  base[i] = null;          // ← ここ重要
-  renderBase();
-  renderFusion();
-};
-      div.oncontextmenu = (e)=>{ e.preventDefault(); base[i] = null; renderBase(); };
+        selectedForFusion.push(c);
+        base[i] = null;
+        renderBase();
+        renderFuse();
+      };
+      div.oncontextmenu = (e)=>{ 
+        e.preventDefault(); 
+        base[i] = null; 
+        renderBase(); 
+      };
     } else {
       div.style.background = "#111";
       div.style.border = "1px dashed #333";
@@ -937,11 +905,9 @@ function renderBase(){
 function renderFuse(){
   const fuseDiv = document.getElementById("fuseSlots");
   fuseDiv.innerHTML = "";
-  let total = 0;
   let totalBase = 0;
   
-  fuseList.forEach((c)=>{
-    total += c.rate;
+  selectedForFusion.forEach((c)=>{
     totalBase += (c.baseRate || c.rate);
     const div = document.createElement("div");
     div.className = "char";
@@ -961,31 +927,51 @@ function renderFuse(){
       case "GOD": raritySpan.style.background="gray"; raritySpan.style.color="cyan"; break;
       case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
     }
-    raritySpan.style.padding="2px 6px"; raritySpan.style.borderRadius="6px"; raritySpan.style.fontSize="10px";
+    raritySpan.style.padding="2px 6px"; 
+    raritySpan.style.borderRadius="6px"; 
+    raritySpan.style.fontSize="10px";
     div.innerHTML = "<div style='font-size:10px;'>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(c.rate) + "/s</div>";
-    div.onclick = ()=>{ const emptyIndex = base.findIndex(s=>s===null); if(emptyIndex === -1) return; const index = fuseList.indexOf(c); if(index !== -1) fuseList.splice(index,1); base[emptyIndex] = c; renderBase(); renderFuse(); };
+    div.onclick = ()=>{ 
+      const emptyIndex = base.findIndex(s=>s===null); 
+      if(emptyIndex === -1) return; 
+      const index = selectedForFusion.indexOf(c); 
+      if(index !== -1) selectedForFusion.splice(index,1); 
+      base[emptyIndex] = c; 
+      renderBase(); 
+      renderFuse(); 
+    };
     fuseDiv.appendChild(div);
   });
   
   document.getElementById("fuseTotal").innerText = format(totalBase);
 
-  if(fuseList.length > 0){
-    const totalBaseRate = fuseList.reduce((sum,c)=>sum+(c.baseRate||c.rate),0);
-    const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
+  if(selectedForFusion.length > 0){
+    const table = fuseTable.find(t => totalBase >= t.min && totalBase < t.max);
     if(table){
       const chanceDiv = document.createElement("div");
-      chanceDiv.style.marginTop = "8px"; chanceDiv.style.fontSize = "10px"; chanceDiv.style.padding = "8px"; chanceDiv.style.background = "#333"; chanceDiv.style.borderRadius = "5px";
+      chanceDiv.style.marginTop = "8px"; 
+      chanceDiv.style.fontSize = "10px"; 
+      chanceDiv.style.padding = "8px"; 
+      chanceDiv.style.background = "#333"; 
+      chanceDiv.style.borderRadius = "5px";
       chanceDiv.innerHTML = "<b>合成結果確率</b><br>";
       const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
-      table.results.forEach(r=>{ let name = r.type === "secret" ? r.value : r.value; let percent = Math.round(r.chance / totalChance * 100); chanceDiv.innerHTML += name + " : " + percent + "%<br>"; });
+      table.results.forEach(r=>{ 
+        let name = r.type === "secret" ? r.value : r.value; 
+        let percent = Math.round(r.chance / totalChance * 100); 
+        chanceDiv.innerHTML += name + " : " + percent + "%<br>"; 
+      });
       fuseDiv.appendChild(chanceDiv);
     }
   }
 }
 
 function fuse(){
-  if(fuseList.length !== 5) { showNotification(`⚠️ 5体必要です！（現在 ${fuseList.length}/5）`, "error", 2000); return; }
-  const used = fuseList.splice(0,5);
+  if(selectedForFusion.length !== 5) { 
+    showNotification(`⚠️ 5体必要です！（現在 ${selectedForFusion.length}/5）`, "error", 2000); 
+    return; 
+  }
+  const used = selectedForFusion.splice(0,5);
   
   const totalBaseRate = used.reduce((sum,c)=>sum + (c.baseRate || c.rate),0);
   
@@ -1010,19 +996,24 @@ function fuse(){
   const firstChar = used[0];
   newChar.attribute = firstChar.attribute;
   newChar.mutations = firstChar.mutations ? [...firstChar.mutations] : [];
+  newChar.reverse = 0;
   
   let totalMultiplier = newChar.attribute ? newChar.attribute.multiplier : 1;
   newChar.mutations.forEach(m => totalMultiplier += m.bonus);
   newChar.rate = Math.floor(newChar.baseRate * totalMultiplier);
   
   const emptyIndex = base.findIndex(s=>s===null);
-  if(emptyIndex !== -1){ base[emptyIndex] = newChar; } else { fuseList.push(newChar); }
-  renderBase(); renderFuse();
+  if(emptyIndex !== -1){ 
+    base[emptyIndex] = newChar; 
+  } else { 
+    selectedForFusion.push(newChar); 
+  }
+  renderBase(); 
+  renderFuse();
   showToast(`✨ ${getCharName(newChar)} が生成されました！`, "success");
 }
 
 function upgradeBase(){
-
   const nextLevel = baseLevel + 1;
   const required = reverseRequirements[nextLevel];
 
@@ -1040,7 +1031,6 @@ function upgradeBase(){
     return;
   }
 
-  // 必要キャラだけ消す
   base[index] = null;
 
   baseLevel++;
@@ -1055,8 +1045,8 @@ function upgradeBase(){
 
   showToast("🔥 リバース成功！", "success");
 }
-function updateReverseRequirementDisplay(){
 
+function updateReverseRequirementDisplay(){
   const nextLevel = baseLevel + 1;
   const required = reverseRequirements[nextLevel];
   const box = document.getElementById("reverseRequirementDisplay");
@@ -1104,21 +1094,6 @@ function closeAdminPanel(){
   document.getElementById("adminPanel").style.display = "none";
 }
 
-function useCode(){
-  const input = document.getElementById("codeInput");
-  const code = input.value.trim();
-  input.value = "";
-  if(!code) return;
-  if(!isAdmin && usedCodes.includes(code)){ showNotification("❌ このコードは既に使用済みです！", "error", 2000); return; }
-  if(code === "670402"){
-    isAdmin = true;
-    document.getElementById("adminPanel").style.display = "block";
-    showNotification("✅ 管理者モード起動", "success", 2000);
-    return;
-  }
-  if(!isAdmin){ usedCodes.push(code); localStorage.setItem("usedCodes",JSON.stringify(usedCodes)); showToast("✅ コードを使用しました！", "success"); }
-}
-
 function renderTradePanel(){
   renderMyCharList();
   renderIncomingRequests();
@@ -1139,7 +1114,10 @@ function renderMyCharList(){
 }
 
 function postTrade(){
-  if(selectedMyChar === null){ showNotification("⚠️ キャラを選択してください！", "error", 2000); return; }
+  if(selectedMyChar === null){ 
+    showNotification("⚠️ キャラを選択してください！", "error", 2000); 
+    return; 
+  }
   
   db.ref("publicTrades").once("value").then(snap=>{
     const trades = snap.val();
@@ -1299,7 +1277,10 @@ function renderPublicTrades(){
   db.ref("publicTrades").once("value").then(snap=>{
     const trades = snap.val();
     container.innerHTML = "";
-    if(!trades){ container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>"; return; }
+    if(!trades){ 
+      container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>"; 
+      return; 
+    }
     let found = false;
     Object.entries(trades).forEach(([id, trade])=>{
       if(trade.status !== "open" || trade.owner === playerId) return;
@@ -1331,7 +1312,10 @@ function renderPublicTrades(){
 
 function applyTrade(tradeId, trade, myCharIdx){
   const myChar = base[myCharIdx];
-  if(!myChar){ showNotification("❌ キャラが見つかりません", "error", 2000); return; }
+  if(!myChar){ 
+    showNotification("❌ キャラが見つかりません", "error", 2000); 
+    return; 
+  }
   
   db.ref("publicTrades/" + tradeId).update({
     status: "waiting",
@@ -1347,15 +1331,43 @@ function applyTrade(tradeId, trade, myCharIdx){
 
 const adminPanel = document.getElementById("adminPanel");
 let isDragging = false, offsetX, offsetY;
-adminPanel.addEventListener("mousedown", (e)=>{ isDragging = true; offsetX = e.clientX - adminPanel.offsetLeft; offsetY = e.clientY - adminPanel.offsetTop; adminPanel.style.right = "auto"; });
-document.addEventListener("mousemove", (e)=>{ if(!isDragging) return; adminPanel.style.left = (e.clientX - offsetX) + "px"; adminPanel.style.top = (e.clientY - offsetY) + "px"; });
-document.addEventListener("mouseup", ()=>{ isDragging = false; });
+adminPanel.addEventListener("mousedown", (e)=>{ 
+  isDragging = true; 
+  offsetX = e.clientX - adminPanel.offsetLeft; 
+  offsetY = e.clientY - adminPanel.offsetTop; 
+  adminPanel.style.right = "auto"; 
+});
 
-setInterval(()=>{ let income = base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0); money += income * incomeMultiplier; updateUI(); },1000);
+document.addEventListener("mousemove", (e)=>{ 
+  if(!isDragging) return; 
+  adminPanel.style.left = (e.clientX - offsetX) + "px"; 
+  adminPanel.style.top = (e.clientY - offsetY) + "px"; 
+});
+
+document.addEventListener("mouseup", ()=>{ 
+  isDragging = false; 
+});
+
+// 1秒ごとに収益を加算
+setInterval(()=>{ 
+  let income = base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0); 
+  money += income * incomeMultiplier; 
+  updateUI(); 
+}, 1000);
 
 function saveGame(){
-  db.ref("players/" + playerId).set({money, baseLevel, capacity, incomeMultiplier, base, fuseList, lastSave: Date.now()});
+  db.ref("players/" + playerId).set({
+    money, 
+    baseLevel, 
+    capacity, 
+    incomeMultiplier, 
+    base, 
+    fuseList, 
+    selectedForFusion,
+    lastSave: Date.now()
+  });
 }
+
 localStorage.setItem("baseLevel", baseLevel);
 setInterval(saveGame, 10000);
 
@@ -1369,66 +1381,38 @@ function loadGame(){
     incomeMultiplier = data.incomeMultiplier || 1;
     base = data.base || [];
     fuseList = data.fuseList || [];
+    selectedForFusion = data.selectedForFusion || [];
+    
     const savedLevel = localStorage.getItem("baseLevel");
-if(savedLevel){
-  baseLevel = parseInt(savedLevel);
-}
+    if(savedLevel){
+      baseLevel = parseInt(savedLevel);
+    }
+    
     ensureBaseSlots();
     renderBase();
     renderFuse();
     updateUI();
+    updateReverseRequirementDisplay();
   });
 }
 
-function startSpawn(){ spawnInterval=setInterval(spawnWalker,3000); }
-function stopSpawn(){ clearInterval(spawnInterval); }
-document.addEventListener("visibilitychange",()=>{ document.hidden ? stopSpawn() : startSpawn(); });
+function startSpawn(){ 
+  spawnInterval = setInterval(spawnWalker, 3000); 
+}
 
+function stopSpawn(){ 
+  clearInterval(spawnInterval); 
+}
+
+document.addEventListener("visibilitychange", ()=>{ 
+  document.hidden ? stopSpawn() : startSpawn(); 
+});
+
+// ゲーム読み込み
 loadGame();
 updateReverseRequirementDisplay();
+
 // グローバルイベント監視
-db.ref("globalEvent").on("value", snap => {
-  const data = snap.val();
-
-  if(!data || !data.active){
-    adminEventActive = false;
-    document.getElementById("adminEventBanner").style.display = "none";
-    clearInterval(eventCountdownInterval);
-    return;
-  }
-
-  adminEventActive = true;
-  globalLuckMultiplier = data.luck || 1;
-  document.getElementById("adminEventBanner").style.display = "block";
-
-  const endTime = data.endTime;
-
-  clearInterval(eventCountdownInterval);
-
-  eventCountdownInterval = setInterval(()=>{
-    const remain = endTime - Date.now();
-
-    if(remain <= 0){
-      clearInterval(eventCountdownInterval);
-      document.getElementById("adminEventTime").innerText = "終了";
-      return;
-    }
-
-    const minutes = Math.floor(remain / 60000);
-    const seconds = Math.floor((remain % 60000) / 1000);
-
-    document.getElementById("adminEventTime").innerText =
-      minutes.toString().padStart(2,"0") + ":" +
-      seconds.toString().padStart(2,"0");
-
-  },1000);
-});
-ensureBaseSlots();
-renderBase();
-startSpawn();
-updateUI();
-updateReverseRequirementDisplay();
-
 db.ref("globalEvent").on("value", snapshot=>{
   const data = snapshot.val();
   const eventStatus = document.getElementById("eventStatus");
@@ -1436,8 +1420,8 @@ db.ref("globalEvent").on("value", snapshot=>{
   
   if(data && data.active){
     adminEventActive = true;
-    globalLuckMultiplier = data.luck;
-    banner.style.display="block";
+    globalLuckMultiplier = data.luck || 100;
+    banner.style.display = "block";
     
     clearInterval(eventCountdownInterval);
     eventCountdownInterval = setInterval(()=>{
@@ -1447,7 +1431,7 @@ db.ref("globalEvent").on("value", snapshot=>{
       if(timeLeft <= 0){
         adminEventActive = false;
         globalLuckMultiplier = 1;
-        banner.style.display="none";
+        banner.style.display = "none";
         eventStatus.innerText = "イベント停止中";
         clearInterval(eventCountdownInterval);
         db.ref("globalEvent").set({active:false});
@@ -1455,6 +1439,9 @@ db.ref("globalEvent").on("value", snapshot=>{
       } else {
         const minutes = Math.floor(timeLeft / 60000);
         const seconds = Math.floor((timeLeft % 60000) / 1000);
+        document.getElementById("adminEventTime").innerText = 
+          minutes.toString().padStart(2,"0") + ":" + 
+          seconds.toString().padStart(2,"0");
         eventStatus.innerHTML = `🔥 イベント開催中<br>⏰ ${minutes}分${seconds}秒`;
       }
     }, 1000);
@@ -1462,11 +1449,18 @@ db.ref("globalEvent").on("value", snapshot=>{
   } else {
     adminEventActive = false;
     globalLuckMultiplier = 1;
-    banner.style.display="none";
-    eventStatus.innerText="イベント停止中";
+    banner.style.display = "none";
+    eventStatus.innerText = "イベント停止中";
     clearInterval(eventCountdownInterval);
   }
 });
+
+// 初期化処理
+ensureBaseSlots();
+renderBase();
+startSpawn();
+updateUI();
+updateReverseRequirementDisplay();
 </script>
 
 </body>
