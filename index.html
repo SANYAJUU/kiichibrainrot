@@ -157,6 +157,7 @@ button{cursor:pointer;}
 }
 
 #tradePanel input{
+  position:fixed;
   width:100%;
   padding:8px;
   margin:5px 0;
@@ -441,7 +442,33 @@ const db = firebase.database();
   <hr>
   <div id="codeBox">
     <input id="codeInput" placeholder="コード入力">
-    <button onclick="useCode()">使用</button>
+    <button onclick="openCodePrompt()">👑 管理者コード</button>
+
+<script>
+let isAdmin = false;
+
+function openCodePrompt(){
+  const code = prompt("👑 管理者パスワードを入力してください");
+
+  if(!code) return;
+
+  if(code === "0402810"){
+    enableAdminMode();
+  } else {
+    showToast("❌ パスワードが違います", "error");
+  }
+}
+
+function enableAdminMode(){
+
+  // 毎回実行される（制限なし）
+  isAdmin = true;
+
+  document.body.style.boxShadow = "0 0 40px gold inset";
+
+  showToast("管理者モードON", "success");
+}
+</script>
   </div>
 </div>
 
@@ -460,6 +487,17 @@ const db = firebase.database();
 
 <div id="tradePanel">
   <h3>🌍 キャラ交換</h3>
+  <button onclick="toggleTradePanel()" 
+style="
+position:absolute;
+top:10px;
+right:10px;
+background:#d32f2f;
+padding:6px 10px;
+border-radius:8px;
+">
+✕
+</button>
   <div style="display:flex; gap:5px; margin-bottom:10px;">
     <button onclick="switchTradeTab('offer')" id="tabOffer" style="flex:1; background:#4CAF50;">📤 出品</button>
     <button onclick="switchTradeTab('find')" id="tabFind" style="flex:1; background:#666;">🔍 募集</button>
@@ -478,7 +516,7 @@ const db = firebase.database();
     <h4>募集中の交換</h4>
     <div class="tradeList" id="publicTradesList"></div>
   </div>
-  <button onclick="toggleTradePanel()" style="width:100%; margin-top:10px;">✕ 閉じる</button>
+  
 </div>
 
 <div id="fuseArea">
