@@ -1291,17 +1291,17 @@ function rejectTradeRequest(tradeId){
   showDialog("申請を拒否", "この申請を拒否しますか？", (confirmed) => {
     if(confirmed){
       db.ref("publicTrades/" + tradeId).remove();
-      showToast("❌ 申請を拒否しました", "info");
+            showToast("❌ 申請を拒否しました", "info");
       renderIncomingRequests();
     }
   });
 }
 
 function cancelTradeRequest(tradeId){
-  showDialog("申請を取り消し", "この申請を取り消しますか？", (confirmed) => {
+  showDialog("申請取消", "申請を取り消しますか？", (confirmed)=>{
     if(confirmed){
       db.ref("publicTrades/" + tradeId).remove();
-      showToast("✅ 申請を取り消しました", "success");
+      showToast("❌ 申請を取り消しました", "info");
       renderIncomingRequests();
     }
   });
@@ -1309,56 +1309,69 @@ function cancelTradeRequest(tradeId){
 
 function renderPublicTrades(){
   const container = document.getElementById("publicTradesList");
-  container.innerHTML = "読み込み中...";
+  container.innerHTML = "";
+
   db.ref("publicTrades").once("value").then(snap=>{
     const trades = snap.val();
-    container.innerHTML = "";
-    if(!trades){ 
-      container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>"; 
-      return; 
+    if(!trades){
+      container.innerHTML = "<div style='text-align:center;color:#999;'>出品なし</div>";
+      return;
     }
-    let found = false;
+
     Object.entries(trades).forEach(([id, trade])=>{
       if(trade.status !== "open" || trade.owner === playerId) return;
-      found = true;
+
       const div = document.createElement("div");
       div.className = "tradeOffer";
-      const ownerChar = JSON.parse(trade.ownerCharData);
-      div.innerHTML = `<div><strong>📤 ${trade.owner}</strong></div><div style="font-size:12px; margin:5px 0;">📦 募集: <strong>${getCharName(ownerChar)}</strong></div><div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>`;
-      const selectDiv = document.createElement("div");
-      selectDiv.style.marginTop = "8px";
-      selectDiv.innerHTML = "<div style='font-size:11px; margin-bottom:5px;'>交換するキャラ:</div>";
-      base.forEach((c, idx)=>{
-        if(!c) return;
-        const btn = document.createElement("button");
-        btn.textContent = `[${idx}] ${getCharName(c)}`;
-        btn.style.width = "100%";
-        btn.style.marginTop = "3px";
-        btn.style.fontSize = "11px";
-        btn.style.padding = "5px";
-        btn.onclick = ()=>{ applyTrade(id, trade, idx); };
-        selectDiv.appendChild(btn);
-      });
-      div.appendChild(selectDiv);
+
+      const charData = JSON.parse(trade.ownerCharData);
+
+      div.innerHTML = `
+        <div><strong>${trade.owner}</strong></div>
+        <div style="font-size:12px;">📦 ${trade.ownerCharName}</div>
+        <div style="font-size:11px;">💬 ${trade.message || "メッセージなし"}</div>
+      `;
+
+      const btn = document.createElement("button");
+      btn.textContent = "申請する";
+      btn.style.width = "100%";
+      btn.style.marginTop = "5px";
+      btn.onclick = ()=>{
+        if(selectedMyChar === null){
+          showToast("⚠ キャラを選択してください", "error");
+          return;
+        }
+
+        const myChar = base[selectedMyChar];
+        db.ref("publicTrades/" + id).update({
+          status:"waiting",
+          applicantId: playerId,
+          applicantCharData: JSON.stringify(myChar)
+        });
+
+        showToast("📨 申請しました", "success");
+        renderPublicTrades();
+      };
+
+      div.appendChild(btn);
       container.appendChild(div);
     });
-    if(!found) container.innerHTML = "<div style='text-align:center; padding:10px; color:#999;'>募集がありません</div>";
   });
 }
 
-function applyTrade(tradeId, trade, myCharIdx){
-  const myChar = base[myCharIdx];
-  if(!myChar){ 
-    showNotification("❌ キャラが見つかりません", "error", 2000); 
-    return; 
-  }
-  
-  db.ref("publicTrades/" + tradeId).update({
-    status: "waiting",
-    applicantId: playerId,
-    applicantCharIndex: myCharIdx,
-    applicantCharData: JSON.stringify(myChar)
+spawnInterval = setInterval(spawnWalker,1000);
+setInterval(()=>{
+  base.forEach(c=>{
+    if(c) money += c.rate * incomeMultiplier;
   });
+  updateUI();
+},1000);
+
+ensureBaseSlots();
+renderBase();
+renderFuse();
+updateUI();
+updateReverseRequirementDisplay();
   
   showToast("✅ 交換申請を送信しました！承認待ちです...", "success");
   switchTradeTab("offer");
