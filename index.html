@@ -1442,47 +1442,43 @@ function fuse(){
    }
 
    // =====================================
-   // 🔥 属性抽選（素材割合ベース）
-   // =====================================
-   const attrCount = {};
-   let totalAttr = 0;
+// 🔥 属性抽選（稼ぎrate割合ベース）
+// =====================================
+const attrRateMap = {};
+let totalRate = 0;
 
-   used.forEach(c=>{
-     if(c.attribute){
-       const name = c.attribute.name;
-       attrCount[name] = (attrCount[name] || 0) + 1;
-       totalAttr++;
-     }
-   });
+used.forEach(c=>{
+  const attrName = c.attribute ? c.attribute.name : "Default";
+  const charRate = c.rate ?? c.baseRate;
 
-   if(totalAttr > 0){
-     const attrEntries = Object.entries(attrCount);
+  attrRateMap[attrName] = (attrRateMap[attrName] || 0) + charRate;
+  totalRate += charRate;
+});
 
-     // 少し緩和補正（偏りすぎ防止）
-     const weighted = attrEntries.map(([name,count])=>{
-       return {
-         name,
-         weight: (count / 5) * 0.9
-       };
-     });
+if(totalRate > 0){
+  const entries = Object.entries(attrRateMap);
 
-     const totalWeight = weighted.reduce((s,a)=>s+a.weight,0);
-     let r = Math.random() * totalWeight;
-     let selectedAttrName = weighted[0].name;
+  let r = Math.random() * totalRate;
+  let selectedAttrName = entries[0][0];
 
-     for(let a of weighted){
-       r -= a.weight;
-       if(r <= 0){
-         selectedAttrName = a.name;
-         break;
-       }
-     }
+  for(let [name,rate] of entries){
+    r -= rate;
+    if(r <= 0){
+      selectedAttrName = name;
+      break;
+    }
+  }
 
-     const attrData = attributes.find(a=>a.name === selectedAttrName);
-     newChar.attribute = attrData;
-   } else {
-     newChar.attribute = undefined;
-   }
+  if(selectedAttrName !== "Default"){
+    const attrData = attributes.find(a=>a.name === selectedAttrName);
+    newChar.attribute = attrData;
+  } else {
+    newChar.attribute = undefined;
+  }
+
+}else{
+  newChar.attribute = undefined;
+}
 
    // =====================================
    // 🔥 変異継承
