@@ -1154,7 +1154,7 @@ function renderFuse(){
   let totalBase = 0;
   
   selectedForFusion.forEach((c)=>{
-    totalBase += (c.baseRate || c.rate);
+    totalBase += c.baseRate;
     const div = document.createElement("div");
     div.className = "char";
     div.style.background = c.attribute ? c.attribute.color : "#444";
@@ -1224,7 +1224,7 @@ function fuse(){
    const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
    if(!table){ renderFuse(); return; }
    
-   const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
+   const totalBaseRate = used.reduce((sum,c)=>sum + c.baseRate,0);
    const rand = Math.random() * totalChance;
    let sum = 0, chosen = table.results[0];
    for(let r of table.results){ sum += r.chance; if(rand <= sum){ chosen = r; break; }}
