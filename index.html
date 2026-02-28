@@ -1194,7 +1194,7 @@ function renderFuse(){
   div.innerHTML =
    "<div style='font-size:10px;'>[" + attributeName + "]</div>" +
    "<div>" + raritySpan.outerHTML + "</div>" +
-   "<div>" + mutationIcons + " +" + format(baseRate) + "/s</div>";
+   "<div>" + mutationIcons + " +" + format(rate) + "/s</div>";
 
   div.onclick = ()=>{
    const emptyIndex = base.findIndex(s=>s===null);
