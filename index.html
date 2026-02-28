@@ -993,8 +993,8 @@ function spawnWalker(){
   }
   let totalMultiplier = data.attribute.multiplier;
   data.mutations.forEach(m=>totalMultiplier += m.bonus);
-  data.rate = Math.floor(data.rate * totalMultiplier);
-  data.baseRate = data.rate;
+  data.baseRate = data.rate; // ← まず素の値を保存
+  data.rate = Math.floor(data.baseRate * totalMultiplier); // ← 表示用
   data.reverse = 0;
 
   const div = document.createElement("div");
