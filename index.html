@@ -573,15 +573,23 @@ border-radius:8px;
     <button onclick="switchTradeTab('find')" id="tabFind" style="flex:1; background:#666;">🔍 募集</button>
   </div>
   <div id="offerTab">
-    <h4>自分のキャラから選択</h4>
-    <div class="tradeList" id="myCharList"></div>
-    <label>募集説明:</label>
-    <input type="text" id="tradeMessage" placeholder="例：イベドラ希望">
-    <button onclick="postTrade()" style="width:100%; background:#4CAF50;">📤 出品する</button>
-    <hr>
-    <h4>交換申請</h4>
-    <div class="tradeList" id="incomingRequests"></div>
-  </div>
+  <h4>自分のキャラから選択</h4>
+  <div class="tradeList" id="myCharList"></div>
+  
+  <label>募集説明:</label>
+  <input type="text" id="tradeMessage" placeholder="例：イベドラ希望">
+  <button onclick="postTrade()" style="width:100%; background:#4CAF50;">📤 出品する</button>
+  
+  <hr>
+  
+  <!-- ✅ 新規追加：自分の出品管理 -->
+  <div id="myListingsContainer"></div>
+  
+  <hr>
+  
+  <h4>交換申請</h4>
+  <div class="tradeList" id="incomingRequests"></div>
+</div>
   <div id="findTab" style="display:none;">
   <!-- ✅ キャラ選択UI はここに JavaScript で追加されます -->
   <h4>募集中の交換</h4>
@@ -1566,11 +1574,6 @@ function closeAdminPanel(){
   document.getElementById("adminPanel").style.display = "none";
 }
 
-function renderTradePanel(){
-  renderMyCharList();
-  renderIncomingRequests();
-}
-
 function renderMyCharList(){
   const container = document.getElementById("myCharList");
   container.innerHTML = "";
@@ -1754,29 +1757,149 @@ function switchTradeTab(tab) {
   }
 }
 
-// ========== renderPublicTrades 修正（出品キャラ詳細表示） ==========
+// ========== 出品管理セクション（出品タブに追加） ==========
+function renderMyListings(){
+  const container = document.getElementById("myListingsContainer");
+  if(!container) return;
+  
+  container.innerHTML = "";
+  
+  db.ref("publicTrades").once("value").then(snap => {
+    const trades = snap.val();
+    if(!trades) {
+      container.innerHTML = "<div style='text-align:center;color:#999;padding:10px;'>出品なし</div>";
+      return;
+    }
+
+    let hasListings = false;
+    const myListings = [];
+
+    Object.entries(trades).forEach(([id, trade]) => {
+      if(trade.owner === playerId && trade.status === "open") {
+        hasListings = true;
+        myListings.push({id, ...trade});
+      }
+    });
+
+    if(!hasListings) {
+      container.innerHTML = "<div style='text-align:center;color:#999;padding:10px;'>出品なし</div>";
+      return;
+    }
+
+    const title = document.createElement("h5");
+    title.style.color = "#FFD700";
+    title.style.margin = "10px 0 5px 0";
+    title.textContent = "📋 自分の出品";
+    container.appendChild(title);
+
+    myListings.forEach(({id, ownerCharData, message}) => {
+      const charData = JSON.parse(ownerCharData);
+      const div = document.createElement("div");
+      div.className = "tradeOffer";
+      div.style.background = "#2a2a2a";
+      div.style.borderColor = "#FFD700";
+
+      div.innerHTML = `
+        <div style="margin-bottom:8px;">
+          <strong>📦 ${getCharName(charData)}</strong>
+          <div style="font-size:11px; color:#aaa;">+${format(charData.baseRate || charData.rate)}/s</div>
+        </div>
+        <div style="font-size:11px; margin:5px 0;">💬 ${message || "メッセージなし"}</div>
+      `;
+
+      const btn = document.createElement("button");
+      btn.textContent = "❌ 削除";
+      btn.style.width = "100%";
+      btn.style.marginTop = "8px";
+      btn.style.background = "#d32f2f";
+      btn.style.fontSize = "11px";
+      btn.style.padding = "5px";
+      btn.onclick = () => {
+        showDialog("出品を取り消し", "このキャラの出品を削除しますか？", (confirmed) => {
+          if(confirmed) {
+            db.ref("publicTrades/" + id).remove();
+            showToast("🗑️ 出品を削除しました", "info");
+            renderMyListings();
+          }
+        });
+      };
+
+      div.appendChild(btn);
+      container.appendChild(div);
+    });
+  });
+}
+
+// ========== 募集検索機能 ==========
+function setupGachaCharSearch(){
+  const searchInput = document.getElementById("gachaCharSearch");
+  if(!searchInput) return;
+
+  searchInput.addEventListener("input", (e) => {
+    const query = e.target.value.toLowerCase();
+    const items = document.querySelectorAll(".gachaSearchItem");
+    
+    items.forEach(item => {
+      const charName = item.getAttribute("data-char-name").toLowerCase();
+      item.style.display = charName.includes(query) ? "block" : "none";
+    });
+  });
+}
+
+// ========== renderPublicTrades 修正（検索対応） ==========
 function renderPublicTrades(){
   const container = document.getElementById("publicTradesList");
   container.innerHTML = "";
 
+  // 検索ボックスを追加
+  if(!document.getElementById("gachaCharSearch")) {
+    const searchBox = document.createElement("div");
+    searchBox.style.marginBottom = "10px";
+    
+    const searchInput = document.createElement("input");
+    searchInput.id = "gachaCharSearch";
+    searchInput.type = "text";
+    searchInput.placeholder = "応募キャラで検索...";
+    searchInput.style.width = "100%";
+    searchInput.style.padding = "8px";
+    searchInput.style.boxSizing = "border-box";
+    searchInput.style.border = "1px solid #555";
+    searchInput.style.background = "#222";
+    searchInput.style.color = "white";
+    searchInput.style.borderRadius = "5px";
+    searchInput.style.marginBottom = "8px";
+    
+    container.appendChild(searchInput);
+    
+    // 検索イベント設定
+    setTimeout(() => setupGachaCharSearch(), 100);
+  }
+
   db.ref("publicTrades").once("value").then(snap => {
     const trades = snap.val();
+    
     if(!trades){
-      container.innerHTML = "<div style='text-align:center;color:#999;'>出品なし</div>";
+      const msg = document.createElement("div");
+      msg.style.textAlign = "center";
+      msg.style.color = "#999";
+      msg.style.padding = "10px";
+      msg.textContent = "出品なし";
+      container.appendChild(msg);
       return;
     }
 
     let found = false;
 
     Object.entries(trades).forEach(([id, trade]) => {
-      // status が "open" で、かつキャラデータが存在するもののみ表示
       if(trade.status !== "open" || !trade.ownerCharData) return;
 
       found = true;
       const charData = JSON.parse(trade.ownerCharData);
 
       const div = document.createElement("div");
-      div.className = "tradeOffer";
+      div.className = "tradeOffer gachaSearchItem";
+      div.setAttribute("data-char-name", getCharName(charData));
+      div.style.marginBottom = "10px";
 
       // ✅ キャラの詳細を表示
       let charDetailHtml = `
@@ -1798,9 +1921,11 @@ function renderPublicTrades(){
       btn.style.width = "100%";
       btn.style.marginTop = "8px";
       btn.style.background = "#2196F3";
+      btn.style.fontSize = "12px";
+      btn.style.padding = "8px";
+      btn.style.borderRadius = "5px";
 
       if(trade.owner === playerId) {
-        // 自分の出品
         btn.disabled = true;
         btn.textContent = "自分の出品";
         btn.style.background = "#666";
@@ -1813,7 +1938,7 @@ function renderPublicTrades(){
 
           const myChar = base[selectedMyChar];
           db.ref("publicTrades/" + id).update({
-            status:"waiting",
+            status: "waiting",
             applicantId: playerId,
             applicantCharData: JSON.stringify(myChar),
             applicantCharName: getCharName(myChar),
@@ -1832,9 +1957,21 @@ function renderPublicTrades(){
     });
 
     if(!found){
-      container.innerHTML = "<div style='text-align:center;color:#999;'>出品なし</div>";
+      const msg = document.createElement("div");
+      msg.style.textAlign = "center";
+      msg.style.color = "#999";
+      msg.style.padding = "10px";
+      msg.textContent = "出品なし";
+      container.appendChild(msg);
     }
   });
+}
+
+// ========== renderTradePanel 修正（出品セクション追加） ==========
+function renderTradePanel(){
+  renderMyCharList();
+  renderMyListings();
+  renderIncomingRequests();
 }
 
 function startSpawn(){ 
