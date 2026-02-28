@@ -623,26 +623,183 @@ const reverseRequirements = {
 };
 
 const fuseTable = [
-  {min:0, max:10000, results:[{type:"rarity", value:"COMMON", chance:25},{type:"rarity", value:"RARE", chance:35},{type:"rarity", value:"EPIC", chance:40}]},
-  {min:10000, max:50000, results:[{type:"rarity", value:"RARE", chance:45},{type:"rarity", value:"EPIC", chance:50},{type:"rarity", value:"LEGENDARY", chance:5}]},
-  {min:50000, max:100000, results:[{type:"rarity", value:"RARE", chance:30},{type:"rarity", value:"EPIC", chance:50},{type:"rarity", value:"LEGENDARY", chance:20}]},
-  {min:100000, max:350000, results:[{type:"rarity", value:"EPIC", chance:35},{type:"rarity", value:"LEGENDARY", chance:55},{type:"rarity", value:"MYTHIC", chance:10}]},
-  {min:350000, max:800000, results:[{type:"rarity", value:"EPIC", chance:25},{type:"rarity", value:"LEGENDARY", chance:40},{type:"rarity", value:"MYTHIC", chance:25},{type:"rarity", value:"GOD", chance:10}]},
-  {min:350000, max:800000, results:[{type:"rarity", value:"LEGENDARY", chance:40},{type:"rarity", value:"MYTHIC", chance:35},{type:"rarity", value:"GOD", chance:25}]},
-  {min:80000, max:1500000, results:[{type:"rarity", value:"LEGENDARY", chance:25},{type:"rarity", value:"MYTHIC", chance:35},{type:"rarity", value:"GOD", chance:40}]},
-  {min:1500000, max:2500000, results:[{type:"rarity", value:"MYTHIC", chance:35},{type:"rarity", value:"GOD", chance:55},{type:"secret", value:"Orcalero Orcala", chance:10}]},
-  {min:2500000, max:3500000, results:[{type:"rarity", value:"MYTHIC", chance:15},{type:"rarity", value:"GOD", chance:35},{type:"secret", value:"Orcalero Orcala", chance:30},{type:"secret", value:"Pot Hotspot", chance:20}]},
-  {min:3500000, max:5000000, results:[{type:"rarity", value:"GOD", chance:35},{type:"secret", value:"Orcalero Orcala", chance:40},{type:"secret", value:"Garamaramadungdung", chance:15},{type:"secret", value:"La Grande Combinacion", chance:10}]},
-  {min:5000000, max:10000000, results:[{type:"secret", value:"Pot Hotspot", chance:25},{type:"secret", value:"67", chance:35},{type:"secret", value:"69", chance:30},{type:"secret", value:"Lirili Ralilu", chance:10}]},
-  {min:10000000, max:15000000, results:[{type:"secret", value:"67", chance:30},{type:"secret", value:"69", chance:25},{type:"secret", value:"Lirili Ralilu", chance:30},{type:"secret", value:"La Esok Sekolah", chance:15}]},
-  {min:15000000, max:25000000, results:[{type:"secret", value:"Lirili Ralilu", chance:35},{type:"secret", value:"La Esok Sekolah", chance:45},{type:"secret", value:"Chimpanzini Kingini", chance:15},{type:"secret", value:"Gorgonzilla", chance:5}]},
-  {min:25000000, max:35000000, results:[{type:"secret", value:"La Esok Sekolah", chance:35},{type:"secret", value:"Chimpanzini Kingini", chance:40},{type:"secret", value:"Spaghetti Tualetti", chance:18},{type:"secret", value:"Gorgonzilla", chance:10},{type:"secret", value:"La Crazy Combinacion", chance:2}]},
-  {min:35000000, max:45000000, results:[{type:"secret", value:"Chimpanzini Kingini", chance:45},{type:"secret", value:"Spaghetti Tualetti", chance:35},{type:"secret", value:"Gorgonzilla", chance:15},{type:"secret", value:"La Crazy Combinacion", chance:5}]},
-  {min:45000000, max:65000000, results:[{type:"secret", value:"Spaghetti Tualetti", chance:45},{type:"secret", value:"Gorgonzilla", chance:25},{type:"secret", value:"La Crazy Combinacion", chance:25},{type:"secret", value:"Gigalitraktos Spidorobos", chance:5}]},
-  {min:65000000, max:100000000, results:[{type:"secret", value:"Spaghetti Tualetti", chance:35},{type:"secret", value:"Gorgonzilla", chance:25},{type:"secret", value:"La Crazy Combinacion", chance:20},{type:"secret", value:"Gigalitraktos Spidorobos", chance:19},{type:"secret", value:"YAJUU SENPAI", chance:1}]},
-  {min:100000000, max:300000000, results:[{type:"secret", value:"Gorgonzilla", chance:45},{type:"secret", value:"La Crazy Combinacion", chance:35},{type:"secret", value:"Gigalitraktos Spidorobos", chance:15},{type:"secret", value:"YAJUU SENPAI", chance:5}]},
-  {min:300000000, max:500000000, results:[{type:"secret", value:"Gorgonzilla", chance:25},{type:"secret", value:"La Crazy Combinacion", chance:40},{type:"secret", value:"Gigalitraktos Spidorobos", chance:25},{type:"secret", value:"YAJUU SENPAI", chance:10}]},
-  {min:500000000, max:Infinity, results:[{type:"secret", value:"La Crazy Combinacion", chance:45},{type:"secret", value:"Gigalitraktos Spidorobos", chance:35},{type:"secret", value:"YAJUU SENPAI", chance:20}]}
+
+{min:0, max:10000, results:[
+  {type:"rarity", value:"COMMON", chance:65},
+  {type:"rarity", value:"RARE", chance:25},
+  {type:"rarity", value:"EPIC", chance:10}
+]},
+
+{min:10000, max:30000, results:[
+  {type:"rarity", value:"COMMON", chance:25},
+  {type:"rarity", value:"RARE", chance:35},
+  {type:"rarity", value:"EPIC", chance:30},
+  {type:"rarity", value:"LEGENDARY", chance:10}
+]},
+
+{min:30000, max:50000, results:[
+  {type:"rarity", value:"RARE", chance:30},
+  {type:"rarity", value:"EPIC", chance:35},
+  {type:"rarity", value:"LEGENDARY", chance:30},
+  {type:"rarity", value:"MYTHIC", chance:5}
+]},
+
+{min:50000, max:100000, results:[
+  {type:"rarity", value:"RARE", chance:30},
+  {type:"rarity", value:"EPIC", chance:35},
+  {type:"rarity", value:"LEGENDARY", chance:20},
+  {type:"rarity", value:"MYTHIC", chance:15}
+]},
+
+{min:100000, max:250000, results:[
+  {type:"rarity", value:"EPIC", chance:30},
+  {type:"rarity", value:"LEGENDARY", chance:40},
+  {type:"rarity", value:"MYTHIC", chance:25},
+  {type:"rarity", value:"GOD", chance:5}
+]},
+
+{min:250000, max:500000, results:[
+  {type:"rarity", value:"EPIC", chance:20},
+  {type:"rarity", value:"LEGENDARY", chance:30},
+  {type:"rarity", value:"MYTHIC", chance:25},
+  {type:"rarity", value:"GOD", chance:25}
+]},
+
+{min:500000, max:1000000, results:[
+  {type:"rarity", value:"LEGENDARY", chance:25},
+  {type:"rarity", value:"MYTHIC", chance:35},
+  {type:"rarity", value:"GOD", chance:30},
+  {type:"secret", value:"Orcalero Orcala", chance:10}
+]},
+
+{min:1000000, max:1500000, results:[
+  {type:"rarity", value:"LEGENDARY", chance:15},
+  {type:"rarity", value:"MYTHIC", chance:20},
+  {type:"rarity", value:"GOD", chance:35},
+  {type:"secret", value:"Orcalero Orcala", chance:15},
+  {type:"secret", value:"Pot Hotspot", chance:5}
+]},
+
+{min:1500000, max:3000000, results:[
+  {type:"rarity", value:"MYTHIC", chance:30},
+  {type:"rarity", value:"GOD", chance:35},
+  {type:"secret", value:"Orcalero Orcala", chance:15},
+  {type:"secret", value:"Pot Hotspot", chance:15},
+  {type:"secret", value:"Garamaramadungdung", chance:5}
+]},
+
+{min:3000000, max:5000000, results:[
+  {type:"rarity", value:"GOD", chance:30},
+  {type:"secret", value:"Orcalero Orcala", chance:30},
+  {type:"secret", value:"Pot Hotspot", chance:20},
+  {type:"secret", value:"Garamaramadungdung", chance:10},
+  {type:"secret", value:"La Grande Combinacion", chance:10}
+]},
+
+{min:5000000, max:8000000, results:[
+  {type:"secret", value:"Pot Hotspot", chance:35},
+  {type:"secret", value:"Garamaramadungdung", chance:25},
+  {type:"secret", value:"La Grande Combinacion", chance:20},
+  {type:"secret", value:"67", chance:20}
+]},
+
+{min:8000000, max:12000000, results:[
+  {type:"secret", value:"Garamaramadungdung", chance:30},
+  {type:"secret", value:"La Grande Combinacion", chance:30},
+  {type:"secret", value:"67", chance:20},
+  {type:"secret", value:"69", chance:15},
+  {type:"secret", value:"Lirili Ralilu", chance:10}
+]},
+
+{min:12000000, max:15000000, results:[
+  {type:"secret", value:"67", chance:35},
+  {type:"secret", value:"69", chance:35},
+  {type:"secret", value:"Lirili Ralilu", chance:25},
+  {type:"secret", value:"La Esok Sekolah", chance:5}
+]},
+
+{min:15000000, max:20000000, results:[
+  {type:"secret", value:"67", chance:15},
+  {type:"secret", value:"69", chance:30},
+  {type:"secret", value:"Lirili Ralilu", chance:30},
+  {type:"secret", value:"La Esok Sekolah", chance:20},
+  {type:"secret", value:"La Sercret Combinacion", chance:5}
+]},
+
+{min:20000000, max:25000000, results:[
+  {type:"secret", value:"69", chance:25},
+  {type:"secret", value:"Lirili Ralilu", chance:30},
+  {type:"secret", value:"La Esok Sekolah", chance:30},
+  {type:"secret", value:"La Sercret Combinacion", chance:15}
+]},
+
+{min:25000000, max:30000000, results:[
+  {type:"secret", value:"Lirili Ralilu", chance:30},
+  {type:"secret", value:"La Esok Sekolah", chance:35},
+  {type:"secret", value:"La Sercret Combinacion", chance:20},
+  {type:"secret", value:"Chimpanzini Kingini", chance:10},
+  {type:"secret", value:"Spaghetti Tualetti", chance:5}
+]},
+
+{min:30000000, max:35000000, results:[
+  {type:"secret", value:"La Esok Sekolah", chance:30},
+  {type:"secret", value:"La Sercret Combinacion", chance:25},
+  {type:"secret", value:"Chimpanzini Kingini", chance:20},
+  {type:"secret", value:"Spaghetti Tualetti", chance:20},
+  {type:"secret", value:"Gorgonzilla", chance:5}
+]},
+
+{min:35000000, max:40000000, results:[
+  {type:"secret", value:"La Sercret Combinacion", chance:35},
+  {type:"secret", value:"Chimpanzini Kingini", chance:35},
+  {type:"secret", value:"Spaghetti Tualetti", chance:25},
+  {type:"secret", value:"Gorgonzilla", chance:5}
+]},
+
+{min:40000000, max:50000000, results:[
+  {type:"secret", value:"La Sercret Combinacion", chance:20},
+  {type:"secret", value:"Chimpanzini Kingini", chance:35},
+  {type:"secret", value:"Spaghetti Tualetti", chance:30},
+  {type:"secret", value:"Gorgonzilla", chance:15}
+]},
+
+{min:50000000, max:65000000, results:[
+  {type:"secret", value:"Chimpanzini Kingini", chance:40},
+  {type:"secret", value:"Spaghetti Tualetti", chance:45},
+  {type:"secret", value:"Gorgonzilla", chance:10},
+  {type:"secret", value:"La Crazy Combinacion", chance:5}
+]},
+
+{min:65000000, max:80000000, results:[
+  {type:"secret", value:"Spaghetti Tualetti", chance:45},
+  {type:"secret", value:"Gorgonzilla", chance:35},
+  {type:"secret", value:"La Crazy Combinacion", chance:15},
+  {type:"secret", value:"Gigalitraktos Spidorobos", chance:5}
+]},
+
+{min:80000000, max:100000000, results:[
+  {type:"secret", value:"Spaghetti Tualetti", chance:30},
+  {type:"secret", value:"Gorgonzilla", chance:35},
+  {type:"secret", value:"La Crazy Combinacion", chance:20},
+  {type:"secret", value:"Gigalitraktos Spidorobos", chance:10},
+  {type:"secret", value:"Tiramisubmarini", chance:5}
+]},
+
+{min:100000000, max:160000000, results:[
+  {type:"secret", value:"Gorgonzilla", chance:35},
+  {type:"secret", value:"La Crazy Combinacion", chance:35},
+  {type:"secret", value:"Gigalitraktos Spidorobos", chance:15},
+  {type:"secret", value:"Tiramisubmarini", chance:15}
+]},
+
+{min:160000000, max:Infinity, results:[
+  {type:"secret", value:"Gorgonzilla", chance:25},
+  {type:"secret", value:"La Crazy Combinacion", chance:35},
+  {type:"secret", value:"Gigalitraktos Spidorobos", chance:25},
+  {type:"secret", value:"Tiramisubmarini", chance:14.8},
+  {type:"secret", value:"YAJUU SENPAI", chance:0.2}
+]}
+
 ];
 
 let money=0, baseLevel=1, capacity=10, incomeMultiplier=1, base=[], fuseList=[], spawnInterval;
