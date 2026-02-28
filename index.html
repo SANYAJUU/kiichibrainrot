@@ -1404,29 +1404,38 @@ function updateReverseRequirementDisplay(){
 function startAdminEvent(){
   if(!isAdmin) return;
 
+  const endTime = Date.now() + (20 * 60 * 1000); // 20分後
+
+  // ✅ Firebaseに保存（全端末で同期）
+  db.ref("globalEvent").set({
+    active: true,
+    luck: 67,
+    startTime: Date.now(),
+    endTime: endTime,
+    startedBy: playerId
+  });
+
+  // ローカル状態も更新
   adminEventActive = true;
   globalLuckMultiplier = 67;
 
-  const duration = 20 * 60;
-  let remaining = duration;
+  showToast("🎉 管理者イベント開始！", "success");
+}
 
-  document.getElementById("adminEventBanner").style.display = "block";
+function stopAdminEvent(){
+  // ✅ Firebaseから削除（全端末で同期）
+  db.ref("globalEvent").set({
+    active: false
+  });
+
+  // ローカル状態も更新
+  adminEventActive = false;
+  globalLuckMultiplier = 1;
 
   clearInterval(eventCountdownInterval);
-  eventCountdownInterval = setInterval(()=>{
-    remaining--;
+  document.getElementById("adminEventBanner").style.display = "none";
 
-    const min = Math.floor(remaining/60);
-    const sec = remaining%60;
-    document.getElementById("adminEventTime").innerText =
-      `${min}:${sec.toString().padStart(2,"0")}`;
-
-    if(remaining <= 0){
-      stopAdminEvent();
-    }
-  },1000);
-
-  showToast("管理者イベント開始", "success");
+  showToast("⏹️ イベント終了", "info");
 }
 
 function stopAdminEvent(){
