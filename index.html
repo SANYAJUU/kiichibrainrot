@@ -1406,9 +1406,10 @@ function fuse(){
 
    const used = selectedForFusion.splice(0,5);
 
-   // ✅ 素のレートのみ合計
+   // ===============================
+   // 🔥 合成結果のレアリティ抽選（そのまま）
+   // ===============================
    const totalBaseRate = used.reduce((sum,c)=>sum + c.baseRate,0);
-
    const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
    if(!table){ renderFuse(); return; }
 
@@ -1440,13 +1441,98 @@ function fuse(){
      };
    }
 
-   // 属性・変異なし
-   newChar.attribute = undefined;
-   newChar.mutations = [];
-   newChar.reverse = 0;
+   // =====================================
+   // 🔥 属性抽選（素材割合ベース）
+   // =====================================
+   const attrCount = {};
+   let totalAttr = 0;
 
+   used.forEach(c=>{
+     if(c.attribute){
+       const name = c.attribute.name;
+       attrCount[name] = (attrCount[name] || 0) + 1;
+       totalAttr++;
+     }
+   });
+
+   if(totalAttr > 0){
+     const attrEntries = Object.entries(attrCount);
+
+     // 少し緩和補正（偏りすぎ防止）
+     const weighted = attrEntries.map(([name,count])=>{
+       return {
+         name,
+         weight: (count / 5) * 0.9
+       };
+     });
+
+     const totalWeight = weighted.reduce((s,a)=>s+a.weight,0);
+     let r = Math.random() * totalWeight;
+     let selectedAttrName = weighted[0].name;
+
+     for(let a of weighted){
+       r -= a.weight;
+       if(r <= 0){
+         selectedAttrName = a.name;
+         break;
+       }
+     }
+
+     const attrData = attributes.find(a=>a.name === selectedAttrName);
+     newChar.attribute = attrData;
+   } else {
+     newChar.attribute = undefined;
+   }
+
+   // =====================================
+   // 🔥 変異継承
+   // =====================================
+   const mutationPool = [];
+
+   used.forEach(c=>{
+     if(c.mutations){
+       c.mutations.forEach(m=>{
+         mutationPool.push(m);
+       });
+     }
+   });
+
+   newChar.mutations = [];
+
+   if(mutationPool.length > 0){
+     // 1〜2個ランダム
+     const inheritCount = Math.random() < 0.7 ? 1 : 2;
+
+     for(let i=0;i<inheritCount;i++){
+       const m = mutationPool[Math.floor(Math.random()*mutationPool.length)];
+       if(!newChar.mutations.includes(m)){
+         newChar.mutations.push(m);
+       }
+     }
+   }
+
+   // =====================================
+   // 🔥 レート再計算
+   // =====================================
    newChar.rate = newChar.baseRate;
 
+   if(newChar.attribute){
+     newChar.rate *= newChar.attribute.multiplier || 1;
+   }
+
+   if(newChar.mutations){
+     newChar.mutations.forEach(m=>{
+       if(m.multiplier){
+         newChar.rate *= m.multiplier;
+       }
+     });
+   }
+
+   newChar.reverse = 0;
+
+   // =====================================
+   // 配置
+   // =====================================
    const emptyIndex = base.findIndex(s=>s===null);
    if(emptyIndex !== -1){
      base[emptyIndex] = newChar;
