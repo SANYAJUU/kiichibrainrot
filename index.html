@@ -1247,7 +1247,7 @@ function postTrade(){
       ownerCharIndex: selectedMyChar, 
       ownerCharData: JSON.stringify(char), 
       ownerCharName: getCharName(char), 
-      message: message, 
+      message: message,  // ← これが重要
       status: "open", 
       timestamp: Date.now()
     });
@@ -1389,24 +1389,28 @@ function renderPublicTrades(){
       return;
     }
 
+    let found = false;
     Object.entries(trades).forEach(([id, trade])=>{
+      // status が "open" で、かつ自分の出品ではないもののみ表示
       if(trade.status !== "open" || trade.owner === playerId) return;
 
+      found = true;
       const div = document.createElement("div");
       div.className = "tradeOffer";
 
       const charData = JSON.parse(trade.ownerCharData);
 
       div.innerHTML = `
-        <div><strong>${trade.owner}</strong></div>
-        <div style="font-size:12px;">📦 ${trade.ownerCharName}</div>
-        <div style="font-size:11px;">💬 ${trade.message || "メッセージなし"}</div>
+        <div><strong>🛍️ ${trade.owner}</strong></div>
+        <div style="font-size:12px; margin:5px 0;">📦 求める: <strong>${trade.ownerCharName}</strong></div>
+        <div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>
       `;
 
       const btn = document.createElement("button");
-      btn.textContent = "申請する";
+      btn.textContent = "📨 申請する";
       btn.style.width = "100%";
       btn.style.marginTop = "5px";
+      btn.style.background = "#2196F3";
       btn.onclick = ()=>{
         if(selectedMyChar === null){
           showToast("⚠ キャラを選択してください", "error");
@@ -1417,16 +1421,23 @@ function renderPublicTrades(){
         db.ref("publicTrades/" + id).update({
           status:"waiting",
           applicantId: playerId,
-          applicantCharData: JSON.stringify(myChar)
+          applicantCharData: JSON.stringify(myChar),
+          applicantMessage: document.getElementById("tradeMessage").value
         });
 
         showToast("📨 申請しました", "success");
+        selectedMyChar = null;
+        renderMyCharList();
         renderPublicTrades();
       };
 
       div.appendChild(btn);
       container.appendChild(div);
     });
+
+    if(!found){
+      container.innerHTML = "<div style='text-align:center;color:#999;'>出品なし</div>";
+    }
   });
 }
 
