@@ -1054,50 +1054,50 @@ function renderFuse(){
 }
 
 function fuse(){
-  if(selectedForFusion.length !== 5) { 
-    showNotification(`⚠️ 5体必要です！（現在 ${selectedForFusion.length}/5）`, "error", 2000); 
-    return; 
-  }
-  const used = selectedForFusion.splice(0,5);
-  
-  const totalBaseRate = used.reduce((sum,c)=>sum + (c.baseRate || c.rate),0);
-  
-  const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
-  if(!table){ renderFuse(); return; }
-  
-  const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
-  const rand = Math.random() * totalChance;
-  let sum = 0, chosen = table.results[0];
-  for(let r of table.results){ sum += r.chance; if(rand <= sum){ chosen = r; break; }}
-  
-  let newChar;
-  if(chosen.type === "rarity"){
-    const rarityData = rarities.find(r => r.name === chosen.value);
-    newChar = {...rarityData};
-    newChar.baseRate = rarityData.rate;
-  } else {
-    const secretData = secretCharacters.find(s => s.character === chosen.value);
-    newChar = {name:"SECRET", character: secretData.character, color:"black", baseRate: secretData.rate};
-  }
-  
-  const firstChar = used[0];
-  newChar.attribute = firstChar.attribute;
-  newChar.mutations = firstChar.mutations ? [...firstChar.mutations] : [];
-  newChar.reverse = 0;
-  
-  let totalMultiplier = newChar.attribute ? newChar.attribute.multiplier : 1;
-  newChar.mutations.forEach(m => totalMultiplier += m.bonus);
-  newChar.rate = Math.floor(newChar.baseRate * totalMultiplier);
-  
-  const emptyIndex = base.findIndex(s=>s===null);
-  if(emptyIndex !== -1){ 
-    base[emptyIndex] = newChar; 
-  } else { 
-    selectedForFusion.push(newChar); 
-  }
-  renderBase(); 
-  renderFuse();
-  showToast(`✨ ${getCharName(newChar)} が生成されました！`, "success");
+   if(selectedForFusion.length !== 5) { 
+     showNotification(`⚠️ 5体必要です！（現在 ${selectedForFusion.length}/5）`, "error", 2000); 
+     return; 
+   }
+   const used = selectedForFusion.splice(0,5);
+   
+   const totalBaseRate = used.reduce((sum,c)=>sum + (c.baseRate || c.rate),0);
+   
+   const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
+   if(!table){ renderFuse(); return; }
+   
+   const totalChance = table.results.reduce((s,r)=>s+r.chance,0);
+   const rand = Math.random() * totalChance;
+   let sum = 0, chosen = table.results[0];
+   for(let r of table.results){ sum += r.chance; if(rand <= sum){ chosen = r; break; }}
+   
+   let newChar;
+   if(chosen.type === "rarity"){
+     const rarityData = rarities.find(r => r.name === chosen.value);
+     newChar = {...rarityData};
+     newChar.baseRate = rarityData.rate;
+   } else {
+     const secretData = secretCharacters.find(s => s.character === chosen.value);
+     newChar = {name:"SECRET", character: secretData.character, color:"black", baseRate: secretData.rate};
+   }
+   
+   // ===== 修正: 属性と変異を削除 =====
+   newChar.attribute = undefined;
+   newChar.mutations = [];
+   newChar.reverse = 0;
+   
+   // Defaultの倍率のみ使用
+   let totalMultiplier = 1;
+   newChar.rate = Math.floor(newChar.baseRate * totalMultiplier);
+   
+   const emptyIndex = base.findIndex(s=>s===null);
+   if(emptyIndex !== -1){ 
+     base[emptyIndex] = newChar; 
+   } else { 
+     selectedForFusion.push(newChar); 
+   }
+   renderBase(); 
+   renderFuse();
+   showToast(`✨ ${getCharName(newChar)} が生成されました！`, "success");
 }
 
 function upgradeBase(){
