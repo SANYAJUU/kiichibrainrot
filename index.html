@@ -438,7 +438,7 @@ firebase.initializeApp(firebaseConfig);
      style="
        position:absolute;
        top:10px;
-       right:65%;
+       right:61%;
        width:260px;
        min-height:80px;
        background:#111;
@@ -977,7 +977,55 @@ function switchTradeTab(tab){
   document.getElementById("findTab").style.display = tab === "find" ? "block" : "none";
   document.getElementById("tabOffer").style.background = tab === "offer" ? "#4CAF50" : "#666";
   document.getElementById("tabFind").style.background = tab === "find" ? "#2196F3" : "#666";
-  if(tab === "find") renderPublicTrades();
+  
+  if(tab === "find"){
+    renderPublicTrades();
+    // ✅ 募集タブでも自分のキャラを選択できるUI を表示
+    renderMyCharListForFind();
+  }
+}
+function renderMyCharListForFind(){
+  // 募集中タブに「自分のキャラから選択」セクション を追加
+  const findTab = document.getElementById("findTab");
+  
+  let selectionDiv = findTab.querySelector("#tradeCharSelectionDiv");
+  if(!selectionDiv){
+    selectionDiv = document.createElement("div");
+    selectionDiv.id = "tradeCharSelectionDiv";
+    selectionDiv.style.marginBottom = "15px";
+    selectionDiv.style.paddingBottom = "15px";
+    selectionDiv.style.borderBottom = "1px solid #555";
+    
+    const label = document.createElement("h4");
+    label.style.margin = "0 0 8px 0";
+    label.style.color = "#4CAF50";
+    label.textContent = "📦 申請するキャラを選択";
+    selectionDiv.appendChild(label);
+    
+    const charList = document.createElement("div");
+    charList.id = "findTabCharList";
+    charList.className = "tradeList";
+    selectionDiv.appendChild(charList);
+    
+    findTab.insertBefore(selectionDiv, findTab.firstChild);
+  }
+  
+  // キャラリストを更新
+  const charListDiv = document.getElementById("findTabCharList");
+  charListDiv.innerHTML = "";
+  
+  base.forEach((c, i)=>{
+    if(!c) return;
+    const div = document.createElement("div");
+    div.className = "tradeCharItem";
+    if(i === selectedMyChar) div.classList.add("selected");
+    div.innerHTML = `<div><strong>[${i}] ${getCharName(c)}</strong></div><div style="font-size:11px;">${getCharDisplay(c)}</div>`;
+    div.onclick = ()=>{ 
+      selectedMyChar = (selectedMyChar === i) ? null : i; 
+      renderMyCharListForFind(); 
+    };
+    charListDiv.appendChild(div);
+  });
 }
 
 function showResetDialog(){
@@ -1675,6 +1723,7 @@ function renderPublicTrades(){
           status:"waiting",
           applicantId: playerId,
           applicantCharData: JSON.stringify(myChar),
+          applicantCharName: getCharName(myChar),  // ✅ 追加: 申請者のキャラ名も保存
           applicantMessage: document.getElementById("tradeMessage").value
         });
 
