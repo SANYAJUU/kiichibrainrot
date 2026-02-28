@@ -465,6 +465,13 @@ firebase.initializeApp(firebaseConfig);
     <button onclick="openCodePrompt()">コード</button>
   </div>
 </div>
+<div id="gachaPanel" style="margin:15px 0 0 0; padding:12px; background:#222; border-radius:8px; border:1px solid #d32f2f; text-align:center;">
+  <div style="font-weight:bold; color:#d32f2f; margin-bottom:8px;">ガチャ</div>
+  <button id="gachaBtn" onclick="pullGacha()" style="background:#d32f2f;color:white;font-size:16px;font-weight:bold;padding:12px 20px;width:100%;border:none;border-radius:6px;cursor:pointer;">
+    ガチャを引く (1T)
+  </button>
+  <div id="gachaResult" style="margin-top:8px;font-weight:bold;color:#FFD700;min-height:20px;"></div>
+</div>
 
 <div id="adminPanel">
   <h3 style="color:gold;">👑 管理者パネル</h3>
@@ -866,8 +873,86 @@ function openCodePrompt(){
     showToast("❌ パスワードが違います", "error");
   }
 }
+// ========== ガチャ機能 ==========
+function pullGacha() {
+  const price = 1000000000000; // 1兆
 
+  if(money < price) {
+    showToast("💸 お金が足りません（必要: 1T）", "error");
+    return;
+  }
 
+  // お金消費
+  money -= price;
+
+  // ✅ ガチャ確率テーブル
+  const gachaPool = [
+    { charName: "La Grande Combinacion", ratio: 35 },
+    { charName: "67", ratio: 25 },
+    { charName: "69", ratio: 20 },
+    { charName: "Ketupat Kepat Prekupat", ratio: 10 },
+    { charName: "La Esok Sekolah", ratio: 5 },
+    { charName: "La Sercret Combinacion", ratio: 3.8 },
+    { charName: "Klombo", ratio: 1 },
+    { charName: "Lobterila Keriktos", ratio: 0.2 }
+  ];
+
+  // 確率計算
+  const total = gachaPool.reduce((s, c) => s + c.ratio, 0);
+  let r = Math.random() * total;
+  let sum = 0, chosen = gachaPool[0].charName;
+
+  for(const c of gachaPool) {
+    sum += c.ratio;
+    if(r <= sum) {
+      chosen = c.charName;
+      break;
+    }
+  }
+
+  // シークレットキャラデータ取得
+  const secret = secretCharacters.find(s => s.character === chosen);
+  if(!secret) {
+    showToast("エラー: キャラが見つかりません", "error");
+    money += price; // 返金
+    return;
+  }
+
+  // キャラ生成
+  let char = {
+    name: "SECRET",
+    character: secret.character,
+    color: "black",
+    baseRate: secret.rate,
+    rate: secret.rate,
+    attribute: undefined,
+    mutations: [],
+    reverse: 0
+  };
+
+  // 空きスロットに追加
+  const emptyIdx = base.findIndex(s => s === null);
+  if(emptyIdx !== -1) {
+    base[emptyIdx] = char;
+    showToast(`🎉 ${chosen} が出ました！ (+${format(secret.rate)}/s)`, "success");
+  } else {
+    // 空きがなければ融合待機に
+    selectedForFusion.push(char);
+    showToast(`🎉 ${chosen} が出ました！（ベースが満杯のため融合待機に）`, "info");
+  }
+
+  // UI更新
+  updateUI();
+  renderBase();
+  renderFuse();
+
+  // 結果表示
+  const resultDiv = document.getElementById("gachaResult");
+  resultDiv.textContent = `✨ 結果: ${chosen} ✨`;
+  setTimeout(() => {
+    resultDiv.textContent = "";
+  }, 3000);
+}
 function showNotification(message, type = "success", duration = 3000) {
   const panel = document.getElementById("notificationPanel");
   panel.textContent = message;
@@ -972,62 +1057,6 @@ function toggleFusePanel(){
   }
 }
 
-function switchTradeTab(tab){
-  currentTradeTab = tab;
-  document.getElementById("offerTab").style.display = tab === "offer" ? "block" : "none";
-  document.getElementById("findTab").style.display = tab === "find" ? "block" : "none";
-  document.getElementById("tabOffer").style.background = tab === "offer" ? "#4CAF50" : "#666";
-  document.getElementById("tabFind").style.background = tab === "find" ? "#2196F3" : "#666";
-  
-  if(tab === "find"){
-    renderPublicTrades();
-    // ✅ 募集タブでも自分のキャラを選択できるUI を表示
-    renderMyCharListForFind();
-  }
-}
-function renderMyCharListForFind(){
-  // 募集中タブに「自分のキャラから選択」セクション を追加
-  const findTab = document.getElementById("findTab");
-  
-  let selectionDiv = findTab.querySelector("#tradeCharSelectionDiv");
-  if(!selectionDiv){
-    selectionDiv = document.createElement("div");
-    selectionDiv.id = "tradeCharSelectionDiv";
-    selectionDiv.style.marginBottom = "15px";
-    selectionDiv.style.paddingBottom = "15px";
-    selectionDiv.style.borderBottom = "1px solid #555";
-    
-    const label = document.createElement("h4");
-    label.style.margin = "0 0 8px 0";
-    label.style.color = "#4CAF50";
-    label.textContent = "📦 申請するキャラを選択";
-    selectionDiv.appendChild(label);
-    
-    const charList = document.createElement("div");
-    charList.id = "findTabCharList";
-    charList.className = "tradeList";
-    selectionDiv.appendChild(charList);
-    
-    findTab.insertBefore(selectionDiv, findTab.firstChild);
-  }
-  
-  // キャラリストを更新
-  const charListDiv = document.getElementById("findTabCharList");
-  charListDiv.innerHTML = "";
-  
-  base.forEach((c, i)=>{
-    if(!c) return;
-    const div = document.createElement("div");
-    div.className = "tradeCharItem";
-    if(i === selectedMyChar) div.classList.add("selected");
-    div.innerHTML = `<div><strong>[${i}] ${getCharName(c)}</strong></div><div style="font-size:11px;">${getCharDisplay(c)}</div>`;
-    div.onclick = ()=>{ 
-      selectedMyChar = (selectedMyChar === i) ? null : i; 
-      renderMyCharListForFind(); 
-    };
-    charListDiv.appendChild(div);
-  });
-}
 
 function showResetDialog(){
   showDialog("リセット確認", "本当にリセットしますか？", (confirmed) => {
@@ -1680,11 +1709,28 @@ function cancelTradeRequest(tradeId){
   });
 }
 
+// ========== switchTradeTab 修正 ==========
+function switchTradeTab(tab) {
+  currentTradeTab = tab;
+  document.getElementById("offerTab").style.display = tab === "offer" ? "block" : "none";
+  document.getElementById("findTab").style.display = tab === "find" ? "block" : "none";
+  document.getElementById("tabOffer").style.background = tab === "offer" ? "#4CAF50" : "#666";
+  document.getElementById("tabFind").style.background = tab === "find" ? "#2196F3" : "#666";
+
+  if(tab === "find"){
+    renderPublicTrades();
+    // ❌ 申請キャラ選択UIは表示しない
+    const selectionDiv = document.getElementById("tradeCharSelectionDiv");
+    if(selectionDiv) selectionDiv.style.display = "none";
+  }
+}
+
+// ========== renderPublicTrades 修正（出品キャラ詳細表示） ==========
 function renderPublicTrades(){
   const container = document.getElementById("publicTradesList");
   container.innerHTML = "";
 
-  db.ref("publicTrades").once("value").then(snap=>{
+  db.ref("publicTrades").once("value").then(snap => {
     const trades = snap.val();
     if(!trades){
       container.innerHTML = "<div style='text-align:center;color:#999;'>出品なし</div>";
@@ -1692,47 +1738,65 @@ function renderPublicTrades(){
     }
 
     let found = false;
-    Object.entries(trades).forEach(([id, trade])=>{
-      // status が "open" で、かつ自分の出品ではないもののみ表示
-      if(trade.status !== "open" || trade.owner === playerId) return;
+
+    Object.entries(trades).forEach(([id, trade]) => {
+      // status が "open" で、かつキャラデータが存在するもののみ表示
+      if(trade.status !== "open" || !trade.ownerCharData) return;
 
       found = true;
+      const charData = JSON.parse(trade.ownerCharData);
+
       const div = document.createElement("div");
       div.className = "tradeOffer";
 
-      const charData = JSON.parse(trade.ownerCharData);
+      // ✅ キャラの詳細を表示
+      let charDetailHtml = `
+        <div style="margin:8px 0; padding:8px; background:#333; border-radius:5px;">
+          <div style="font-weight:bold;">📦 出品キャラ:</div>
+          <div style="font-size:12px; margin:5px 0;">${getCharDisplay(charData)}</div>
+        </div>
+      `;
 
       div.innerHTML = `
         <div><strong>🛍️ ${trade.owner}</strong></div>
-        <div style="font-size:12px; margin:5px 0;">📦 求める: <strong>${trade.ownerCharName}</strong></div>
         <div style="font-size:11px; margin:5px 0;">💬 ${trade.message || "メッセージなし"}</div>
+        ${charDetailHtml}
       `;
 
+      // 申請ボタン
       const btn = document.createElement("button");
       btn.textContent = "📨 申請する";
       btn.style.width = "100%";
-      btn.style.marginTop = "5px";
+      btn.style.marginTop = "8px";
       btn.style.background = "#2196F3";
-      btn.onclick = ()=>{
-        if(selectedMyChar === null){
-          showToast("⚠ キャラを選択してください", "error");
-          return;
-        }
 
-        const myChar = base[selectedMyChar];
-        db.ref("publicTrades/" + id).update({
-          status:"waiting",
-          applicantId: playerId,
-          applicantCharData: JSON.stringify(myChar),
-          applicantCharName: getCharName(myChar),  // ✅ 追加: 申請者のキャラ名も保存
-          applicantMessage: document.getElementById("tradeMessage").value
-        });
+      if(trade.owner === playerId) {
+        // 自分の出品
+        btn.disabled = true;
+        btn.textContent = "自分の出品";
+        btn.style.background = "#666";
+      } else {
+        btn.onclick = () => {
+          if(selectedMyChar === null) {
+            showToast("⚠ 出品タブでキャラを選択してから募集に申請してください", "error");
+            return;
+          }
 
-        showToast("📨 申請しました", "success");
-        selectedMyChar = null;
-        renderMyCharList();
-        renderPublicTrades();
-      };
+          const myChar = base[selectedMyChar];
+          db.ref("publicTrades/" + id).update({
+            status:"waiting",
+            applicantId: playerId,
+            applicantCharData: JSON.stringify(myChar),
+            applicantCharName: getCharName(myChar),
+            applicantMessage: document.getElementById("tradeMessage").value
+          });
+
+          showToast("📨 申請しました！相手の返信を待ちましょう", "success");
+          selectedMyChar = null;
+          renderMyCharList();
+          renderPublicTrades();
+        };
+      }
 
       div.appendChild(btn);
       container.appendChild(div);
