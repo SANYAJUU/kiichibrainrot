@@ -1426,7 +1426,7 @@ function startAdminEvent(){
     }
   },1000);
 
-  showToast("👑 67倍イベント開始", "success");
+  showToast("管理者イベント開始", "success");
 }
 
 function stopAdminEvent(){
@@ -1719,7 +1719,7 @@ db.ref("globalEvent").on("value", snapshot=>{
   
   if(data && data.active){
     adminEventActive = true;
-    globalLuckMultiplier = data.luck || 100;
+    globalLuckMultiplier = data.luck || 67;
     banner.style.display = "block";
     
     clearInterval(eventCountdownInterval);
