@@ -465,12 +465,48 @@ firebase.initializeApp(firebaseConfig);
     <button onclick="openCodePrompt()">コード</button>
   </div>
 </div>
-<div id="gachaPanel" style="margin:15px 0 0 0; padding:12px; background:#222; border-radius:8px; border:1px solid #d32f2f; text-align:center;">
-  <div style="font-weight:bold; color:#d32f2f; margin-bottom:8px;">ガチャ</div>
-  <button id="gachaBtn" onclick="pullGacha()" style="background:#d32f2f;color:white;font-size:16px;font-weight:bold;padding:12px 20px;margin-top:100px;width:350px;border:none;border-radius:6px;cursor:pointer;">
-    ガチャを引く (1T)
+<!-- レッドカーペット左上、UIの右に配置 -->
+<div id="gachaPanel" style="
+  position: fixed;
+  top: 10px;
+  right: calc(50% + 100px);
+  width: 280px;
+  background: #1e1e1e;
+  border: 2px solid #d32f2f;
+  border-radius: 10px;
+  padding: 12px;
+  text-align: center;
+  z-index: 100;
+  box-shadow: 0 0 15px rgba(211, 47, 47, 0.5);
+">
+  <div style="font-weight: bold; color: #d32f2f; margin-bottom: 8px; font-size: 14px;">🎲 高級ガチャ</div>
+  
+  <button id="gachaBtn" onclick="pullGacha()" style="
+    background: linear-gradient(135deg, #d32f2f, #f44336);
+    color: white;
+    font-size: 14px;
+    font-weight: bold;
+    padding: 10px 15px;
+    width: 100%;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-bottom: 8px;
+    transition: transform 0.2s;
+  " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+    ガチャを引く
   </button>
-  <div id="gachaResult" style="margin-top:8px;font-weight:bold;color:#FFD700;min-height:20px;"></div>
+  
+  <div style="font-size: 11px; color: #aaa; margin-bottom: 6px;">必要: 1T💰</div>
+  
+  <div id="gachaResult" style="
+    margin-top: 8px;
+    font-weight: bold;
+    color: #FFD700;
+    min-height: 20px;
+    font-size: 12px;
+    word-break: break-word;
+  "></div>
 </div>
 
 <div id="adminPanel">
@@ -874,6 +910,7 @@ function openCodePrompt(){
   }
 }
 // ========== ガチャ機能 ==========
+// ========== ガチャ関数（既存のままで OK） ==========
 function pullGacha() {
   const price = 1000000000000; // 1兆
 
@@ -882,10 +919,8 @@ function pullGacha() {
     return;
   }
 
-  // お金消費
   money -= price;
 
-  // ✅ ガチャ確率テーブル
   const gachaPool = [
     { charName: "La Grande Combinacion", ratio: 35 },
     { charName: "67", ratio: 25 },
@@ -897,7 +932,6 @@ function pullGacha() {
     { charName: "Lobterila Keriktos", ratio: 0.2 }
   ];
 
-  // 確率計算
   const total = gachaPool.reduce((s, c) => s + c.ratio, 0);
   let r = Math.random() * total;
   let sum = 0, chosen = gachaPool[0].charName;
@@ -910,7 +944,6 @@ function pullGacha() {
     }
   }
 
-  // シークレットキャラデータ取得
   const secret = secretCharacters.find(s => s.character === chosen);
   if(!secret) {
     showToast("エラー: キャラが見つかりません", "error");
@@ -918,7 +951,6 @@ function pullGacha() {
     return;
   }
 
-  // キャラ生成
   let char = {
     name: "SECRET",
     character: secret.character,
@@ -930,25 +962,22 @@ function pullGacha() {
     reverse: 0
   };
 
-  // 空きスロットに追加
   const emptyIdx = base.findIndex(s => s === null);
   if(emptyIdx !== -1) {
     base[emptyIdx] = char;
     showToast(`🎉 ${chosen} が出ました！ (+${format(secret.rate)}/s)`, "success");
   } else {
-    // 空きがなければ融合待機に
     selectedForFusion.push(char);
-    showToast(`🎉 ${chosen} が出ました！（ベースが満杯のため融合待機に）`, "info");
+    showToast(`🎉 ${chosen} が出ました！（融合待機に）`, "info");
   }
 
-  // UI更新
   updateUI();
   renderBase();
   renderFuse();
 
-  // 結果表示
+  // 結果表示（3秒後に消える）
   const resultDiv = document.getElementById("gachaResult");
-  resultDiv.textContent = `✨ 結果: ${chosen} ✨`;
+  resultDiv.textContent = `✨ ${chosen} ✨`;
   setTimeout(() => {
     resultDiv.textContent = "";
   }, 3000);
