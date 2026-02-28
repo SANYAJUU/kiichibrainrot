@@ -434,6 +434,24 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 </script>
+<div id="globalNoticeBox"
+     style="
+       position:absolute;
+       top:10px;
+       right:10px;
+       width:260px;
+       min-height:80px;
+       background:#111;
+       border:2px solid gold;
+       border-radius:10px;
+       padding:10px;
+       z-index:1500;
+     ">
+  <div style="font-weight:bold; color:gold;">運営からのお知らせ</div>
+  <div id="globalNoticeText" style="margin-top:5px; font-size:13px;">
+    現在お知らせはありません
+  </div>
+</div>
 
 <div id="ui">
   <div>キャッシュ <span id="money">0</span></div>
@@ -461,11 +479,19 @@ firebase.initializeApp(firebaseConfig);
   <button onclick="stopAdminEvent()" style="background:#d32f2f;">🛑 イベント終了</button>
 
   <hr>
+<h4>📢 全体メッセージ送信</h4>
+<input type="text" id="adminNoticeInput" placeholder="例：本日20:00〜イベント開催">
+<button onclick="sendGlobalNotice()" style="background:gold; color:black;">
+送信
+</button>
+<button onclick="clearGlobalNotice()" style="background:#555;">
+削除
+</button>
+  <hr>
 
   <button onclick="closeAdminPanel()" style="background:#555;">❌ 閉じる</button>
 
-  <div id="eventStatus" style="margin-top:10px;color:lime;">イベント停止中</div>
-</div>
+  </div>
 
 <div id="carpet"></div>
 <div id="reverseRequirementDisplay"
@@ -555,6 +581,28 @@ let usedCodes = JSON.parse(localStorage.getItem("usedCodes")||"[]");
 let selectedMyChar = null, currentTradeTab = "offer", dialogCallback = null;
 let selectedForFusion = [];
 let eventCountdownInterval = null;
+function sendGlobalNotice(){
+  if(!isAdmin) return;
+
+  const text = document.getElementById("adminNoticeInput").value;
+  if(!text){
+    showToast("⚠ メッセージを入力してください", "error");
+    return;
+  }
+
+  db.ref("globalNotice").set({
+    message: text,
+    timestamp: Date.now()
+  });
+
+  showToast("📢 全体メッセージを送信しました", "success");
+}
+function clearGlobalNotice(){
+  if(!isAdmin) return;
+
+  db.ref("globalNotice").remove();
+  showToast("🗑 メッセージを削除しました", "info");
+}
 
 const rarities = [
   {name:"COMMON", color:"#777", rate:1000, chance:49},
@@ -1653,7 +1701,16 @@ document.addEventListener("visibilitychange", ()=>{
 loadGame();
 updateReverseRequirementDisplay();
 saveGame();
+db.ref("globalNotice").on("value", snapshot=>{
+  const data = snapshot.val();
+  const box = document.getElementById("globalNoticeText");
 
+  if(data && data.message){
+    box.innerText = data.message;
+  } else {
+    box.innerText = "現在お知らせはありません";
+  }
+});
 // グローバルイベント監視
 db.ref("globalEvent").on("value", snapshot=>{
   const data = snapshot.val();
