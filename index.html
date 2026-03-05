@@ -512,9 +512,8 @@ firebase.initializeApp(firebaseConfig);
 <div id="adminPanel">
   <h3 style="color:gold;">👑 管理者パネル</h3>
 
-  <button onclick="addMoney(1000000000)" style="background:#4CAF50;">💰 +1B</button>
   <button onclick="addMoney(100000000000)" style="background:#4CAF50;">💰 +100B</button>
-  <button onclick="addMoney(1000000000000)" style="background:#4CAF50;">💰 +1T</button>
+  <button onclick="addMoney(10000000000000)" style="background:#4CAF50;">💰 +10T</button>
 
   <hr>
 
@@ -1714,16 +1713,6 @@ function stopAdminEvent(){
   document.getElementById("adminEventBanner").style.display = "none";
 
   showToast("⏹️ イベント終了", "info");
-}
-
-function stopAdminEvent(){
-  adminEventActive = false;
-  globalLuckMultiplier = 1;
-
-  clearInterval(eventCountdownInterval);
-  document.getElementById("adminEventBanner").style.display = "none";
-
-  showToast("イベント終了", "info");
 }
 
 function addMoney(amount){
