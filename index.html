@@ -309,22 +309,29 @@ button{cursor:pointer;}
   to { transform:scale(1.08); box-shadow:0 0 25px orange; }
 }
 
-#codeBox{
-  margin:10px;
+.codeBox{
+  position:fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background:rgba(0,0,0,0.6);
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  z-index:9999;
 }
 
-#codeBox input{
-  padding:5px;
-  border-radius:5px;
-  border:1px solid #666;
-  background:#222;
-  color:white;
-  width:150px;
+.codeInner{
+  background:white;
+  padding:20px;
+  border-radius:10px;
+  text-align:center;
 }
 
-#codeBox button{
-  padding:5px 10px;
-  margin:0 5px;
+.codeInner input{
+  padding:8px;
+  font-size:16px;
 }
 
 button{
@@ -464,9 +471,15 @@ firebase.initializeApp(firebaseConfig);
   <button id="upgradeBtn" onclick="upgradeBase()" style="width:100%; margin-top:8px;">リバース</button>
   <button onclick="showResetDialog()" style="background:#d32f2f; width:100%; margin-top:3px;">リセット</button>
   <hr>
-  <div id="codeBox">
-    <button onclick="openCodePrompt()">コード</button>
+  <div id="codeBox" style="display:none;" class="codeBox">
+  <div class="codeInner">
+    <h3>管理者コード</h3>
+    <input type="password" id="adminCodeInput" placeholder="コードを入力">
+    <br>
+    <button onclick="checkAdminCode()">OK</button>
+    <button onclick="closeCodePrompt()">キャンセル</button>
   </div>
+</div>
 </div>
 <!-- レッドカーペット左上、UIの右に配置 -->
 <div id="gachaPanel" style="
@@ -907,14 +920,22 @@ const fuseTable = [
 let money=0, baseLevel=1, capacity=10, incomeMultiplier=1, base=[], fuseList=[], spawnInterval;
 
 function openCodePrompt(){
-  const code = prompt("コードを入力");
-  if(!code) return;
+  document.getElementById("codeBox").style.display = "flex";
+}
+
+function closeCodePrompt(){
+  document.getElementById("codeBox").style.display = "none";
+}
+
+function checkAdminCode(){
+  const code = document.getElementById("adminCodeInput").value;
 
   if(code === "8101919114514"){
     isAdmin = true;
     document.body.style.boxShadow = "0 0 40px gold inset";
     document.getElementById("adminPanel").style.display = "block";
     showToast("👑 管理者モードON", "success");
+    closeCodePrompt();
   } else {
     showToast("❌ パスワードが違います", "error");
   }
