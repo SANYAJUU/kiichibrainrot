@@ -576,7 +576,7 @@ border-radius:8px;
   <div class="tradeList" id="myCharList"></div>
   
   <label>募集説明:</label>
-  <input type="text" id="tradeMessage" placeholder="例：イベドラ希望">
+  <input type="text" id="tradeMessage" placeholder="交換に表示するメッセージ（何が欲しいのかとか）">
   <button onclick="postTrade()" style="width:100%; background:#4CAF50;">📤 出品する</button>
   
   <hr>
@@ -1106,15 +1106,30 @@ function updateUI(){
   }
 }
 function toggleTradePanel(){
+
   const panel = document.getElementById("tradePanel");
   const fuseArea = document.getElementById("fuseArea");
-  if(panel.style.display === "block"){ 
-    panel.style.display = "none"; 
-  } else { 
-    panel.style.display = "block"; 
-    fuseArea.style.display = "none"; 
-    renderTradePanel(); 
+
+  const isOpen = panel.classList.contains("open");
+
+  if(isOpen){
+
+    panel.classList.remove("open");
+    panel.style.display = "none";
+
+  }else{
+
+    panel.classList.add("open");
+    panel.style.display = "block";
+
+    fuseArea.style.display = "none";
+
+    // スクロールズレ防止
+    panel.scrollTop = 0;
+
+    renderTradePanel();
   }
+
 }
 
 function toggleFusePanel(){
@@ -1998,34 +2013,31 @@ function setupGachaCharSearch(){
   });
 }
 
-// ========== renderPublicTrades 修正（検索対応） ==========
 function renderPublicTrades(){
   const container = document.getElementById("publicTradesList");
   container.innerHTML = "";
 
-  // 検索ボックスを追加
-  if(!document.getElementById("gachaCharSearch")) {
-    const searchBox = document.createElement("div");
-    searchBox.style.marginBottom = "10px";
-    
-    const searchInput = document.createElement("input");
-    searchInput.id = "gachaCharSearch";
-    searchInput.type = "text";
-    searchInput.placeholder = "応募キャラで検索...";
-    searchInput.style.width = "100%";
-    searchInput.style.padding = "8px";
-    searchInput.style.boxSizing = "border-box";
-    searchInput.style.border = "1px solid #555";
-    searchInput.style.background = "#222";
-    searchInput.style.color = "white";
-    searchInput.style.borderRadius = "5px";
-    searchInput.style.marginBottom = "8px";
-    
-    container.appendChild(searchInput);
-    
-    // 検索イベント設定
-    setTimeout(() => setupGachaCharSearch(), 100);
-  }
+  // 🔹検索ボックス
+  const searchBox = document.createElement("div");
+  searchBox.style.marginBottom = "10px";
+  searchBox.style.position = "relative";
+
+  const searchInput = document.createElement("input");
+  searchInput.id = "gachaCharSearch";
+  searchInput.type = "text";
+  searchInput.placeholder = "応募キャラで検索...";
+  searchInput.style.width = "100%";
+  searchInput.style.padding = "8px";
+  searchInput.style.boxSizing = "border-box";
+  searchInput.style.border = "1px solid #555";
+  searchInput.style.background = "#222";
+  searchInput.style.color = "white";
+  searchInput.style.borderRadius = "5px";
+
+  searchBox.appendChild(searchInput);
+  container.appendChild(searchBox);
+
+  setupGachaCharSearch(); // 検索設定
 
   db.ref("publicTrades").once("value").then(snap => {
     const trades = snap.val();
@@ -2053,7 +2065,6 @@ function renderPublicTrades(){
       div.setAttribute("data-char-name", getCharName(charData));
       div.style.marginBottom = "10px";
 
-      // ✅ キャラの詳細を表示
       let charDetailHtml = `
         <div style="margin:8px 0; padding:8px; background:#333; border-radius:5px;">
           <div style="font-weight:bold;">📦 出品キャラ:</div>
@@ -2067,7 +2078,6 @@ function renderPublicTrades(){
         ${charDetailHtml}
       `;
 
-      // 申請ボタン
       const btn = document.createElement("button");
       btn.textContent = "📨 申請する";
       btn.style.width = "100%";
@@ -2083,12 +2093,14 @@ function renderPublicTrades(){
         btn.style.background = "#666";
       } else {
         btn.onclick = () => {
-          if(selectedMyChar === null) {
+
+          if(selectedMyChar === null){
             showToast("⚠ 出品タブでキャラを選択してから募集に申請してください", "error");
             return;
           }
 
           const myChar = base[selectedMyChar];
+
           db.ref("publicTrades/" + id).update({
             status: "waiting",
             applicantId: playerId,
@@ -2098,6 +2110,7 @@ function renderPublicTrades(){
           });
 
           showToast("📨 申請しました！相手の返信を待ちましょう", "success");
+
           selectedMyChar = null;
           renderMyCharList();
           renderPublicTrades();
