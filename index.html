@@ -6,8 +6,6 @@
 <meta name="google-site-verification" content="google1c7a1b08f6e97eca.html" />
 <meta name="description" content="kiichiがつくったブレロマップです。">
 <meta name="keywords" content="brainrot,kiichibrainrot,KiichiBrainrot">
-<!-- Google Sign-In -->
-<script src="https://accounts.google.com/gsi/client" async defer></script>
 <style>
 /* 既存 walker 用 */
 .walker{
@@ -46,49 +44,6 @@ body{
   overflow:hidden;
 }
 
-#loginContainer {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: #111;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-}
-
-#loginContainer.hidden {
-  display: none;
-}
-
-.loginBox {
-  background: #1e1e1e;
-  padding: 40px;
-  border-radius: 15px;
-  border: 2px solid #4CAF50;
-  text-align: center;
-  box-shadow: 0 0 30px rgba(76,175,80,0.5);
-  max-width: 400px;
-}
-
-.loginBox h1 {
-  color: #4CAF50;
-  margin-top: 0;
-  font-size: 28px;
-}
-
-.loginBox p {
-  color: #aaa;
-  margin-bottom: 20px;
-}
-
-#googleSignInButton {
-  margin: 20px 0;
-}
-
 #ui{
   position:absolute;
   top:10px;
@@ -106,32 +61,6 @@ body{
 #ui div {
   font-size:12px;
   margin:2px 0;
-}
-
-.userInfo {
-  position: absolute;
-  top: 10px;
-  right: 20px;
-  background: #1e1e1e;
-  border: 2px solid #4CAF50;
-  padding: 10px 15px;
-  border-radius: 10px;
-  font-size: 12px;
-  z-index: 10;
-}
-
-.userInfo img {
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  margin-right: 10px;
-  vertical-align: middle;
-}
-
-.userInfo button {
-  margin-left: 10px;
-  padding: 5px 10px;
-  background: #d32f2f;
 }
 
 #carpet{
@@ -357,50 +286,6 @@ button{cursor:pointer;}
   padding:8px;
 }
 
-#adminApprovalPanel{
-  display:none;
-  position:absolute;
-  right:5px;
-  top:120px;
-  width:300px;
-  max-height:600px;
-  background:#111;
-  border:3px solid gold;
-  padding:15px;
-  z-index:1000;
-  cursor:move;
-  overflow-y:auto;
-}
-
-#adminApprovalPanel h3{
-  color:gold;
-  margin-top:0;
-}
-
-.adminApprovalItem{
-  padding:8px;
-  margin:8px 0;
-  border:1px solid gold;
-  border-radius:5px;
-  background:#1a1a1a;
-  font-size:12px;
-}
-
-.adminApprovalItem img{
-  width:24px;
-  height:24px;
-  border-radius:50%;
-  margin-right:8px;
-  vertical-align:middle;
-}
-
-.adminApprovalItem button{
-  width:100%;
-  padding:5px;
-  margin:5px 0 0 0;
-  font-size:11px;
-}
-
 #adminEventBanner{
   display:none;
   position:fixed;
@@ -547,30 +432,8 @@ const firebaseConfig = {
   measurementId: "G-HCFMTTL0WV"
 };
 firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+  const db = firebase.database();
 </script>
-
-<!-- ログイン画面 -->
-<div id="loginContainer">
-  <div class="loginBox">
-    <h1>🧠 kiichibrainrot</h1>
-    <p>Googleアカウントでサインインしてください</p>
-    <div id="googleSignInButton"></div>
-    <hr>
-    <div id="codeLoginBox" style="margin-top:15px;">
-      <input type="password" id="adminCodeInput" placeholder="管理者コード（オプション）">
-      <button onclick="adminLoginWithCode()" style="width:100%; margin-top:8px;">管理者コードでログイン</button>
-    </div>
-  </div>
-</div>
-
-<!-- ユーザー情報表示 -->
-<div id="userInfoContainer" class="userInfo" style="display:none;">
-  <img id="userAvatar" src="" alt="avatar">
-  <span id="userName">User</span>
-  <button onclick="handleLogout()">ログアウト</button>
-</div>
-
 <div id="globalNoticeBox"
      style="
        position:absolute;
@@ -597,8 +460,12 @@ const db = firebase.database();
   <div>倍率 x<span id="multiplier">1</span></div>
   <button id="upgradeBtn" onclick="upgradeBase()" style="width:100%; margin-top:8px;">リバース</button>
   <button onclick="showResetDialog()" style="background:#d32f2f; width:100%; margin-top:3px;">リセット</button>
+  <hr>
+  <div id="codeBox">
+    <button onclick="openCodePrompt()">コード</button>
+  </div>
 </div>
-
+<!-- レッドカーペット左上、UIの右に配置 -->
 <div id="gachaPanel" style="
   position: fixed;
   top: 120px;
@@ -642,6 +509,18 @@ const db = firebase.database();
   "></div>
 </div>
 
+  <div style="right:20%;">
+    GACHA 確率
+La Grande Combinacion 35%
+67 25%
+69 20%
+Ketupat Kepat Prekupat 10%
+La Esok Sekolah 5%
+La Sercret Combinacion 3.8%
+Klombo 1%
+Lobterila Keriktos 0.2%
+  </div>
+
 <div id="adminPanel">
   <h3 style="color:gold;">👑 管理者パネル</h3>
 
@@ -655,35 +534,19 @@ const db = firebase.database();
   <button onclick="stopAdminEvent()" style="background:#d32f2f;">🛑 イベント終了</button>
 
   <hr>
-  <h4>📢 全体メッセージ送信</h4>
-  <input type="text" id="adminNoticeInput" placeholder="例：本日20:00〜イベント開催">
-  <button onclick="sendGlobalNotice()" style="background:gold; color:black;">送信</button>
-  <button onclick="clearGlobalNotice()" style="background:#555;">削除</button>
-
+<h4>📢 全体メッセージ送信</h4>
+<input type="text" id="adminNoticeInput" placeholder="例：本日20:00〜イベント開催">
+<button onclick="sendGlobalNotice()" style="background:gold; color:black;">
+送信
+</button>
+<button onclick="clearGlobalNotice()" style="background:#555;">
+削除
+</button>
   <hr>
 
-  <button onclick="showAdminApprovalPanel()" style="background:#ff9800;">👥 管理者承認</button>
   <button onclick="closeAdminPanel()" style="background:#555;">❌ 閉じる</button>
-</div>
 
-<!-- 管理者承認パネル -->
-<div id="adminApprovalPanel">
-  <h3>👥 管理者承認管理</h3>
-  <button onclick="closeAdminApprovalPanel()" style="
-    position:absolute;
-    top:10px;
-    right:10px;
-    background:#d32f2f;
-    padding:6px 10px;
-    border-radius:8px;
-  ">✕</button>
-
-  <h4 style="color:#FFD700; margin-top:15px;">📋 申請待ち</h4>
-  <div id="pendingAdminsList"></div>
-
-  <h4 style="color:#4CAF50; margin-top:15px;">✅ 承認済み管理者</h4>
-  <div id="approvedAdminsList"></div>
-</div>
+  </div>
 
 <div id="carpet"></div>
 <div id="reverseRequirementDisplay"
@@ -731,6 +594,7 @@ border-radius:8px;
   
   <hr>
   
+  <!-- ✅ 新規追加：自分の出品管理 -->
   <div id="myListingsContainer"></div>
   
   <hr>
@@ -739,6 +603,7 @@ border-radius:8px;
   <div class="tradeList" id="incomingRequests"></div>
 </div>
   <div id="findTab" style="display:none;">
+  <!-- ✅ キャラ選択UI はここに JavaScript で追加されます -->
   <h4>募集中の交換</h4>
   <div class="tradeList" id="publicTradesList"></div>
 </div>
@@ -769,310 +634,39 @@ border-radius:8px;
 </div>
 
 <script>
-// =====================================
-// 🔐 ユーザー認証管理
-// =====================================
-let currentUser = null;
-let userEmail = null;
-let playerId = null;
-let isAdmin = false;
-let isAdminPasswordUser = false;
-
-// Google Sign-In 初期化
-window.onload = function() {
-  google.accounts.id.initialize({
-    client_id: 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com', // ← Googleコンソールから取得
-    callback: handleGoogleSignIn
-  });
-  
-  google.accounts.id.renderButton(
-    document.getElementById('googleSignInButton'),
-    {
-      theme: 'dark',
-      size: 'large',
-      text: 'signup_with'
-    }
-  );
-
-  // ローカルストレージからセッション復元
-  const savedUser = localStorage.getItem("currentUser");
-  if(savedUser) {
-    const user = JSON.parse(savedUser);
-    currentUser = user;
-    userEmail = user.email;
-    playerId = user.email; // GoogleアカウントのメールをplayerIdとして使用
-    document.getElementById("loginContainer").classList.add("hidden");
-    document.getElementById("userInfoContainer").style.display = "block";
-    document.getElementById("userAvatar").src = user.picture;
-    document.getElementById("userName").textContent = user.name;
-    
-    // 管理者状態を確認
-    checkAdminStatus();
-    initializeGame();
-  }
-};
-
-// Google Sign-In コールバック
-function handleGoogleSignIn(response) {
-  const token = response.credential;
-  
-  // JWTをデコード（base64）
-  const base64Url = token.split('.')[1];
-  const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-  const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-  }).join(''));
-  
-  const userInfo = JSON.parse(jsonPayload);
-  
-  currentUser = {
-    name: userInfo.name,
-    email: userInfo.email,
-    picture: userInfo.picture
-  };
-  
-  userEmail = userInfo.email;
-  playerId = userInfo.email;
-  
-  // セッション保存
-  localStorage.setItem("currentUser", JSON.stringify(currentUser));
-  
-  // UI更新
-  document.getElementById("loginContainer").classList.add("hidden");
-  document.getElementById("userInfoContainer").style.display = "block";
-  document.getElementById("userAvatar").src = userInfo.picture;
-  document.getElementById("userName").textContent = userInfo.name;
-  
-  // 管理者状態確認
-  checkAdminStatus();
-  
-  // ゲーム初期化
-  initializeGame();
-  
-  showToast("✅ ようこそ " + userInfo.name, "success");
+let playerId = localStorage.getItem("playerId");
+if(!playerId){
+  playerId = "player_" + Math.random().toString(36).substr(2,9);
+  localStorage.setItem("playerId", playerId);
 }
 
-// ログアウト処理
-function handleLogout() {
-  google.accounts.id.disableAutoSelect();
-  currentUser = null;
-  userEmail = null;
-  playerId = null;
-  isAdmin = false;
-  isAdminPasswordUser = false;
-  
-  localStorage.removeItem("currentUser");
-  localStorage.removeItem("brainrotSave");
-  localStorage.removeItem("playerId");
-  
-  document.getElementById("loginContainer").classList.remove("hidden");
-  document.getElementById("userInfoContainer").style.display = "none";
-  document.getElementById("adminPanel").style.display = "none";
-  
-  // ページリロード
-  location.reload();
-}
-
-// 管理者状態確認
-function checkAdminStatus() {
-  db.ref("admins/" + playerId).once("value").then(snapshot => {
-    const adminData = snapshot.val();
-    
-    if(adminData && adminData.approved) {
-      isAdmin = true;
-      document.body.style.boxShadow = "0 0 40px gold inset";
-      showToast("👑 管理者モードで起動しました", "success");
-    }
-  });
-}
-
-// 管理者パスワードログイン（既存互換）
-function adminLoginWithCode() {
-  const code = document.getElementById("adminCodeInput").value;
-  
-  if(code === "30huxni5723icnbku8532qn") {
-    isAdminPasswordUser = true;
-    isAdmin = true;
-    document.body.style.boxShadow = "0 0 40px gold inset";
-    document.getElementById("adminCodeInput").value = "";
-    showToast("👑 管理者モード(パスワード)で起動しました", "success");
-    
-    if(document.getElementById("loginContainer").classList.contains("hidden")) {
-      // すでにログイン済み
-    } else {
-      // ログイン画面を隠す
-      document.getElementById("loginContainer").classList.add("hidden");
-    }
-  } else {
-    showToast("❌ パスワードが違います", "error");
-  }
-}
-
-// 管理者承認パネル表示
-function showAdminApprovalPanel() {
+let adminEventActive = false, globalLuckMultiplier = 1, isAdmin = false;
+let usedCodes = JSON.parse(localStorage.getItem("usedCodes")||"[]");
+let selectedMyChar = null, currentTradeTab = "offer", dialogCallback = null;
+let selectedForFusion = [];
+let eventCountdownInterval = null;
+function sendGlobalNotice(){
   if(!isAdmin) return;
-  
-  document.getElementById("adminApprovalPanel").style.display = "block";
-  renderAdminApprovalLists();
-}
 
-// 管理者承認パネル閉じる
-function closeAdminApprovalPanel() {
-  document.getElementById("adminApprovalPanel").style.display = "none";
-}
+  const text = document.getElementById("adminNoticeInput").value;
+  if(!text){
+    showToast("⚠ メッセージを入力してください", "error");
+    return;
+  }
 
-// 管理者承認リスト表示
-function renderAdminApprovalLists() {
-  const pendingContainer = document.getElementById("pendingAdminsList");
-  const approvedContainer = document.getElementById("approvedAdminsList");
-  
-  pendingContainer.innerHTML = "";
-  approvedContainer.innerHTML = "";
-  
-  db.ref("admins").once("value").then(snapshot => {
-    const admins = snapshot.val() || {};
-    
-    let hasPending = false;
-    let hasApproved = false;
-    
-    Object.entries(admins).forEach(([email, adminData]) => {
-      if(!adminData.approved) {
-        hasPending = true;
-        const div = document.createElement("div");
-        div.className = "adminApprovalItem";
-        div.style.borderColor = "#ff9800";
-        
-        div.innerHTML = `
-          <img src="${adminData.picture || 'https://via.placeholder.com/24'}" alt="avatar">
-          <strong>${adminData.name}</strong><br>
-          <small style="color:#aaa;">${email}</small>
-        `;
-        
-        const approveBtn = document.createElement("button");
-        approveBtn.textContent = "✅ 承認";
-        approveBtn.style.background = "#4CAF50";
-        approveBtn.onclick = () => approveAdmin(email);
-        
-        const rejectBtn = document.createElement("button");
-        rejectBtn.textContent = "❌ 却下";
-        rejectBtn.style.background = "#d32f2f";
-        rejectBtn.onclick = () => rejectAdmin(email);
-        
-        div.appendChild(approveBtn);
-        div.appendChild(rejectBtn);
-        
-        pendingContainer.appendChild(div);
-      } else {
-        hasApproved = true;
-        const div = document.createElement("div");
-        div.className = "adminApprovalItem";
-        div.style.borderColor = "#4CAF50";
-        
-        div.innerHTML = `
-          <img src="${adminData.picture || 'https://via.placeholder.com/24'}" alt="avatar">
-          <strong>${adminData.name}</strong><br>
-          <small style="color:#aaa;">${email}</small>
-        `;
-        
-        const revokeBtn = document.createElement("button");
-        revokeBtn.textContent = "🛑 権限剥奪";
-        revokeBtn.style.background = "#d32f2f";
-        revokeBtn.onclick = () => revokeAdmin(email);
-        
-        div.appendChild(revokeBtn);
-        
-        approvedContainer.appendChild(div);
-      }
-    });
-    
-    if(!hasPending) {
-      const msg = document.createElement("div");
-      msg.style.textAlign = "center";
-      msg.style.color = "#999";
-      msg.style.padding = "10px";
-      msg.textContent = "申請なし";
-      pendingContainer.appendChild(msg);
-    }
-    
-    if(!hasApproved) {
-      const msg = document.createElement("div");
-      msg.style.textAlign = "center";
-      msg.style.color = "#999";
-      msg.style.padding = "10px";
-      msg.textContent = "管理者なし";
-      approvedContainer.appendChild(msg);
-    }
+  db.ref("globalNotice").set({
+    message: text,
+    timestamp: Date.now()
   });
-}
 
-// 管理者を承認
-function approveAdmin(email) {
-  showDialog("管理者承認", email + " を管理者として承認しますか？", (confirmed) => {
-    if(confirmed) {
-      db.ref("admins/" + email).update({
-        approved: true,
-        approvedAt: Date.now(),
-        approvedBy: playerId
-      });
-      
-      showToast("✅ " + email + " を承認しました", "success");
-      renderAdminApprovalLists();
-    }
-  });
+  showToast("📢 全体メッセージを送信しました", "success");
 }
+function clearGlobalNotice(){
+  if(!isAdmin) return;
 
-// 管理者を却下
-function rejectAdmin(email) {
-  showDialog("申請却下", email + " の申請を却下しますか？", (confirmed) => {
-    if(confirmed) {
-      db.ref("admins/" + email).remove();
-      showToast("❌ " + email + " の申請を却下しました", "info");
-      renderAdminApprovalLists();
-    }
-  });
+  db.ref("globalNotice").remove();
+  showToast("🗑 メッセージを削除しました", "info");
 }
-
-// 管理者権限を剥奪
-function revokeAdmin(email) {
-  showDialog("権限剥奪", email + " の管理者権限を剥奪しますか？", (confirmed) => {
-    if(confirmed) {
-      db.ref("admins/" + email).update({
-        approved: false,
-        revokedAt: Date.now(),
-        revokedBy: playerId
-      });
-      
-      showToast("🛑 " + email + " の管理者権限を剥奪しました", "info");
-      renderAdminApprovalLists();
-    }
-  });
-}
-
-// 管理者申請（任意のユーザーが実行可能）
-function requestAdminStatus() {
-  if(!playerId || !currentUser) return;
-  
-  db.ref("admins/" + playerId).once("value").then(snapshot => {
-    if(snapshot.exists()) {
-      showToast("⚠ すでに申請済みまたは承認されています", "info");
-      return;
-    }
-    
-    db.ref("admins/" + playerId).set({
-      name: currentUser.name,
-      picture: currentUser.picture,
-      email: playerId,
-      approved: false,
-      requestedAt: Date.now()
-    });
-    
-    showToast("📋 管理者申請を送信しました。管理者の承認をお待ちください。", "success");
-  });
-}
-
-// =====================================
-// 既存ゲームロジック（初期化関数で実行）
-// =====================================
 
 const rarities = [
   {name:"COMMON", color:"#777", rate:1000, chance:49},
@@ -1141,47 +735,55 @@ const reverseRequirements = {
 };
 
 const fuseTable = [
+
 {min:0, max:10000, results:[
   {type:"rarity", value:"COMMON", chance:65},
   {type:"rarity", value:"RARE", chance:25},
   {type:"rarity", value:"EPIC", chance:10}
 ]},
+
 {min:10000, max:30000, results:[
   {type:"rarity", value:"COMMON", chance:25},
   {type:"rarity", value:"RARE", chance:35},
   {type:"rarity", value:"EPIC", chance:30},
   {type:"rarity", value:"LEGENDARY", chance:10}
 ]},
+
 {min:30000, max:50000, results:[
   {type:"rarity", value:"RARE", chance:30},
   {type:"rarity", value:"EPIC", chance:35},
   {type:"rarity", value:"LEGENDARY", chance:30},
   {type:"rarity", value:"MYTHIC", chance:5}
 ]},
+
 {min:50000, max:100000, results:[
   {type:"rarity", value:"RARE", chance:30},
   {type:"rarity", value:"EPIC", chance:35},
   {type:"rarity", value:"LEGENDARY", chance:20},
   {type:"rarity", value:"MYTHIC", chance:15}
 ]},
+
 {min:100000, max:250000, results:[
   {type:"rarity", value:"EPIC", chance:30},
   {type:"rarity", value:"LEGENDARY", chance:40},
   {type:"rarity", value:"MYTHIC", chance:25},
   {type:"rarity", value:"GOD", chance:5}
 ]},
+
 {min:250000, max:500000, results:[
   {type:"rarity", value:"EPIC", chance:20},
   {type:"rarity", value:"LEGENDARY", chance:30},
   {type:"rarity", value:"MYTHIC", chance:25},
   {type:"rarity", value:"GOD", chance:25}
 ]},
+
 {min:500000, max:1000000, results:[
   {type:"rarity", value:"LEGENDARY", chance:25},
   {type:"rarity", value:"MYTHIC", chance:35},
   {type:"rarity", value:"GOD", chance:30},
   {type:"secret", value:"Orcalero Orcala", chance:10}
 ]},
+
 {min:1000000, max:1500000, results:[
   {type:"rarity", value:"LEGENDARY", chance:15},
   {type:"rarity", value:"MYTHIC", chance:30},
@@ -1189,6 +791,7 @@ const fuseTable = [
   {type:"secret", value:"Orcalero Orcala", chance:15},
   {type:"secret", value:"Pot Hotspot", chance:5}
 ]},
+
 {min:1500000, max:3000000, results:[
   {type:"rarity", value:"MYTHIC", chance:30},
   {type:"rarity", value:"GOD", chance:35},
@@ -1196,6 +799,7 @@ const fuseTable = [
   {type:"secret", value:"Pot Hotspot", chance:15},
   {type:"secret", value:"Garamaramadungdung", chance:5}
 ]},
+
 {min:3000000, max:5000000, results:[
   {type:"rarity", value:"GOD", chance:30},
   {type:"secret", value:"Orcalero Orcala", chance:30},
@@ -1203,12 +807,14 @@ const fuseTable = [
   {type:"secret", value:"Garamaramadungdung", chance:10},
   {type:"secret", value:"La Grande Combinacion", chance:10}
 ]},
+
 {min:5000000, max:8000000, results:[
   {type:"secret", value:"Pot Hotspot", chance:35},
   {type:"secret", value:"Garamaramadungdung", chance:25},
   {type:"secret", value:"La Grande Combinacion", chance:20},
   {type:"secret", value:"67", chance:20}
 ]},
+
 {min:8000000, max:12000000, results:[
   {type:"secret", value:"Garamaramadungdung", chance:25},
   {type:"secret", value:"La Grande Combinacion", chance:30},
@@ -1216,12 +822,14 @@ const fuseTable = [
   {type:"secret", value:"69", chance:15},
   {type:"secret", value:"Lirili Ralilu", chance:10}
 ]},
+
 {min:12000000, max:15000000, results:[
   {type:"secret", value:"67", chance:35},
   {type:"secret", value:"69", chance:35},
   {type:"secret", value:"Lirili Ralilu", chance:25},
   {type:"secret", value:"La Esok Sekolah", chance:5}
 ]},
+
 {min:15000000, max:20000000, results:[
   {type:"secret", value:"67", chance:15},
   {type:"secret", value:"69", chance:30},
@@ -1229,12 +837,14 @@ const fuseTable = [
   {type:"secret", value:"La Esok Sekolah", chance:20},
   {type:"secret", value:"La Sercret Combinacion", chance:5}
 ]},
+
 {min:20000000, max:25000000, results:[
   {type:"secret", value:"69", chance:25},
   {type:"secret", value:"Lirili Ralilu", chance:30},
   {type:"secret", value:"La Esok Sekolah", chance:30},
   {type:"secret", value:"La Sercret Combinacion", chance:15}
 ]},
+
 {min:25000000, max:30000000, results:[
   {type:"secret", value:"Lirili Ralilu", chance:30},
   {type:"secret", value:"La Esok Sekolah", chance:35},
@@ -1242,6 +852,7 @@ const fuseTable = [
   {type:"secret", value:"Chimpanzini Kingini", chance:10},
   {type:"secret", value:"Spaghetti Tualetti", chance:5}
 ]},
+
 {min:30000000, max:35000000, results:[
   {type:"secret", value:"La Esok Sekolah", chance:30},
   {type:"secret", value:"La Sercret Combinacion", chance:25},
@@ -1249,30 +860,35 @@ const fuseTable = [
   {type:"secret", value:"Spaghetti Tualetti", chance:20},
   {type:"secret", value:"Gorgonzilla", chance:5}
 ]},
+
 {min:35000000, max:40000000, results:[
   {type:"secret", value:"La Sercret Combinacion", chance:35},
   {type:"secret", value:"Chimpanzini Kingini", chance:35},
   {type:"secret", value:"Spaghetti Tualetti", chance:25},
   {type:"secret", value:"Gorgonzilla", chance:5}
 ]},
+
 {min:40000000, max:50000000, results:[
   {type:"secret", value:"La Sercret Combinacion", chance:20},
   {type:"secret", value:"Chimpanzini Kingini", chance:35},
   {type:"secret", value:"Spaghetti Tualetti", chance:30},
   {type:"secret", value:"Gorgonzilla", chance:15}
 ]},
+
 {min:50000000, max:65000000, results:[
   {type:"secret", value:"Chimpanzini Kingini", chance:40},
   {type:"secret", value:"Spaghetti Tualetti", chance:45},
   {type:"secret", value:"Gorgonzilla", chance:10},
   {type:"secret", value:"La Crazy Combinacion", chance:5}
 ]},
+
 {min:65000000, max:80000000, results:[
   {type:"secret", value:"Spaghetti Tualetti", chance:45},
   {type:"secret", value:"Gorgonzilla", chance:35},
   {type:"secret", value:"La Crazy Combinacion", chance:15},
   {type:"secret", value:"Gigalitraktos Spidorobos", chance:5}
 ]},
+
 {min:80000000, max:100000000, results:[
   {type:"secret", value:"Spaghetti Tualetti", chance:30},
   {type:"secret", value:"Gorgonzilla", chance:35},
@@ -1280,12 +896,14 @@ const fuseTable = [
   {type:"secret", value:"Gigalitraktos Spidorobos", chance:10},
   {type:"secret", value:"Tiramisubmarini", chance:5}
 ]},
+
 {min:100000000, max:160000000, results:[
   {type:"secret", value:"Gorgonzilla", chance:35},
   {type:"secret", value:"La Crazy Combinacion", chance:35},
   {type:"secret", value:"Gigalitraktos Spidorobos", chance:15},
   {type:"secret", value:"Tiramisubmarini", chance:15}
 ]},
+
 {min:160000000, max:Infinity, results:[
   {type:"secret", value:"Gorgonzilla", chance:25},
   {type:"secret", value:"La Crazy Combinacion", chance:35},
@@ -1293,137 +911,26 @@ const fuseTable = [
   {type:"secret", value:"Tiramisubmarini", chance:14.8},
   {type:"secret", value:"YAJUU SENPAI", chance:0.2}
 ]}
+
 ];
 
 let money=0, baseLevel=1, capacity=10, incomeMultiplier=1, base=[], fuseList=[], spawnInterval;
-let adminEventActive = false, globalLuckMultiplier = 1;
-let usedCodes = JSON.parse(localStorage.getItem("usedCodes")||"[]");
-let selectedMyChar = null, currentTradeTab = "offer", dialogCallback = null;
-let selectedForFusion = [];
-let eventCountdownInterval = null;
 
-// ゲーム初期化
-function initializeGame() {
-  loadGame();
-  ensureBaseSlots();
-  renderBase();
-  renderFuse();
-  startSpawn();
-  updateUI();
-  updateReverseRequirementDisplay();
-  
-  // グローバル通知監視
-  db.ref("globalNotice").on("value", snapshot=>{
-    const data = snapshot.val();
-    const box = document.getElementById("globalNoticeText");
-    if(data && data.message){
-      box.innerText = data.message;
-    } else {
-      box.innerText = "現在お知らせはありません";
-    }
-  });
-  
-  // グローバルイベント監視
-  db.ref("globalEvent").on("value", snapshot=>{
-    const data = snapshot.val();
-    const banner = document.getElementById("adminEventBanner");
-    
-    if(data && data.active){
-      adminEventActive = true;
-      globalLuckMultiplier = data.luck || 67;
-      banner.style.display = "block";
-      
-      clearInterval(eventCountdownInterval);
-      eventCountdownInterval = setInterval(()=>{
-        const now = Date.now();
-        const timeLeft = data.endTime - now;
-        
-        if(timeLeft <= 0){
-          adminEventActive = false;
-          globalLuckMultiplier = 1;
-          banner.style.display = "none";
-          clearInterval(eventCountdownInterval);
-          db.ref("globalEvent").set({active:false});
-          showToast("⏰ 管理者イベントが終了しました", "info");
-        } else {
-          const minutes = Math.floor(timeLeft / 60000);
-          const seconds = Math.floor((timeLeft % 60000) / 1000);
-          document.getElementById("adminEventTime").innerText = 
-            minutes.toString().padStart(2,"0") + ":" + 
-            seconds.toString().padStart(2,"0");
-        }
-      }, 1000);
-      
-    } else {
-      adminEventActive = false;
-      globalLuckMultiplier = 1;
-      banner.style.display = "none";
-      clearInterval(eventCountdownInterval);
-    }
-  });
-  
-  // ドラッグ機能（管理者パネル）
-  const adminPanel = document.getElementById("adminPanel");
-  let isDragging = false, offsetX, offsetY;
+function openCodePrompt(){
+  const code = prompt("コードを入力");
+  if(!code) return;
 
-  adminPanel.addEventListener("mousedown", (e)=>{ 
-    isDragging = true; 
-    offsetX = e.clientX - adminPanel.offsetLeft; 
-    offsetY = e.clientY - adminPanel.offsetTop; 
-    adminPanel.style.right = "auto"; 
-  });
-
-  document.addEventListener("mousemove", (e)=>{ 
-    if(!isDragging) return; 
-    adminPanel.style.left = (e.clientX - offsetX) + "px"; 
-    adminPanel.style.top = (e.clientY - offsetY) + "px"; 
-  });
-
-  document.addEventListener("mouseup", ()=>{ 
-    isDragging = false; 
-  });
-
-  // 収益加算（毎秒）
-  setInterval(()=>{ 
-    let income = base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0); 
-    money += income * incomeMultiplier; 
-    updateUI(); 
-  }, 1000);
-
-  // セーブ機能
-  setInterval(saveGame, 2000);
-  
-  // 管理者パネル表示
-  if(isAdmin) {
+  if(code === "30huxni5723icnbku8532qn"){
+    isAdmin = true;
+    document.body.style.boxShadow = "0 0 40px gold inset";
     document.getElementById("adminPanel").style.display = "block";
+    showToast("👑 管理者モードON", "success");
+  } else {
+    showToast("❌ パスワードが違います", "error");
   }
 }
-
-// ゲーム用の関数（既存のまま）
-function sendGlobalNotice(){
-  if(!isAdmin) return;
-
-  const text = document.getElementById("adminNoticeInput").value;
-  if(!text){
-    showToast("⚠ メッセージを入力してください", "error");
-    return;
-  }
-
-  db.ref("globalNotice").set({
-    message: text,
-    timestamp: Date.now()
-  });
-
-  showToast("📢 全体メッセージを送信しました", "success");
-}
-
-function clearGlobalNotice(){
-  if(!isAdmin) return;
-
-  db.ref("globalNotice").remove();
-  showToast("🗑 メッセージを削除しました", "info");
-}
-
+// ========== ガチャ機能 ==========
+// ========== ガチャ関数（既存のままで OK） ==========
 function pullGacha() {
   const price = 1000000000000; // 1兆
 
@@ -1460,7 +967,7 @@ function pullGacha() {
   const secret = secretCharacters.find(s => s.character === chosen);
   if(!secret) {
     showToast("エラー: キャラが見つかりません", "error");
-    money += price;
+    money += price; // 返金
     return;
   }
 
@@ -1488,13 +995,13 @@ function pullGacha() {
   renderBase();
   renderFuse();
 
+  // 結果表示（3秒後に消える）
   const resultDiv = document.getElementById("gachaResult");
   resultDiv.textContent = `✨ ${chosen} ✨`;
   setTimeout(() => {
     resultDiv.textContent = "";
   }, 3000);
 }
-
 function showNotification(message, type = "success", duration = 3000) {
   const panel = document.getElementById("notificationPanel");
   panel.textContent = message;
@@ -1599,6 +1106,7 @@ function toggleFusePanel(){
   }
 }
 
+
 function showResetDialog(){
   showDialog("リセット確認", "本当にリセットしますか？", (confirmed) => {
     if(confirmed){
@@ -1644,6 +1152,7 @@ function spawnWalker(){
   let baseData = getRandomRarity();
   let data = {...baseData};
   if(baseData.name === "SECRET"){
+    // ===== 修正: 確率付きシークレットキャラ選択 =====
     const selectedSecret = selectWeightedSecret();
     const pick = secretCharacters.find(s => s.character === selectedSecret);
     data = {name:"SECRET", character: pick.character, rate: pick.rate, color:"black"};
@@ -1659,8 +1168,8 @@ function spawnWalker(){
   }
   let totalMultiplier = data.attribute.multiplier;
   data.mutations.forEach(m=>totalMultiplier += m.bonus);
-  data.baseRate = data.rate;
-  data.rate = Math.floor(data.baseRate * totalMultiplier);
+  data.baseRate = data.rate; // ← まず素の値を保存
+  data.rate = Math.floor(data.baseRate * totalMultiplier); // ← 表示用
   data.reverse = 0;
 
   const div = document.createElement("div");
@@ -1700,11 +1209,46 @@ function spawnWalker(){
   };
 }
 
+// ===== 新規追加: 重み付きランダム選択関数 =====
 function selectWeightedSecret(){
-  const weights = [
-  15, 14, 13, 12, 11, 10, 9, 8, 7, 6, 5, 4.5, 4, 3.5, 3, 2.5, 2.3, 2, 1.5, 0, 0, 0.9, 0.8, 0.6, 0.4, 0.3, 0.2, 0, 0.1, 0.08, 0.02, 0.01, 0
-  ];
   
+  const weights = [
+  15,      // Piccione Macchina
+  14,      // Pakrahmatmamat
+  13,      // Orcalero Orcala
+  12,      // Pot Hotspot
+  11,      // Nooo My Hotspot
+  10,      // Garamaramadungdung
+  9,       // Il Sacro Cabrospaghetti
+  8,       // La Grande Combinacion
+  7,       // Yess My Hotspot
+  6,       // 67
+  5,       // 69
+  4.5,     // Ketupat Kepat Prekupat
+  4,       // Nooo My Bicicleteira
+  3.5,     // W or L
+  3,       // Lirili Ralilu
+  2.5,     // La Esok Sekolah
+  2.3,     // La Sercret Combinacion
+  2,       // Chimpanzini Kingini
+  1.5,     // Strawberry Elephant
+  0,     // Klombo
+  0,     // Gorgonzilla
+  0.9,     // Lobterila Keriktos
+  0.8,     // Spaghetti Tualetti
+  0.6,     // Cannelloni Dragoni
+  0.4,     // La Crazy Combinacion
+  0.3,     // Chocone Dragone
+  0.2,     // Gigalitraktos Spidorobos
+  0,    // Tiramisubmarini
+  0.1,     // Garbagzilla
+  0.08,    // Cannone Maledettone
+  0.02,    // SKIBIDI TOILET
+  0.01,    // YAJUU SENPAI
+  0   // KOU CHOU
+];
+  
+  // 累積重みを計算
   let cumulativeWeights = [];
   let total = 0;
   for(let w of weights){
@@ -1712,14 +1256,17 @@ function selectWeightedSecret(){
     cumulativeWeights.push(total);
   }
   
+  // ランダムな値を生成
   let random = Math.random() * total;
   
+  // 該当するキャラを選択
   for(let i = 0; i < cumulativeWeights.length; i++){
     if(random < cumulativeWeights[i]){
       return secretCharacters[i].character;
     }
   }
   
+  // フォールバック
   return secretCharacters[secretCharacters.length - 1].character;
 }
 
@@ -1782,6 +1329,7 @@ function renderFuse(){
 
  selectedForFusion.forEach((c)=>{
 
+  // ✅ 古いデータ対策
   const baseRate = c.baseRate ?? c.rate;
 
   totalBase += baseRate;
@@ -1815,6 +1363,7 @@ function renderFuse(){
   raritySpan.style.borderRadius="6px";
   raritySpan.style.fontSize="10px";
 
+  // ✅ 表示を baseRate に変更（ここだけ変更）
   div.innerHTML =
    "<div style='font-size:10px;'>[" + attributeName + "]</div>" +
    "<div>" + raritySpan.outerHTML + "</div>" +
@@ -1833,8 +1382,10 @@ function renderFuse(){
   fuseDiv.appendChild(div);
  });
 
+ // 合計も素レート
  document.getElementById("fuseTotal").innerText = format(totalBase);
 
+ // 🔥 合成確率表示（元の機能そのまま）
  if(selectedForFusion.length > 0){
   const table = fuseTable.find(t => totalBase >= t.min && totalBase < t.max);
   if(table){
@@ -1867,6 +1418,9 @@ function fuse(){
 
    const used = selectedForFusion.splice(0,5);
 
+   // ===============================
+   // 🔥 合成結果のレアリティ抽選（そのまま）
+   // ===============================
    const totalBaseRate = used.reduce((sum,c)=>sum + c.baseRate,0);
    const table = fuseTable.find(t => totalBaseRate >= t.min && totalBaseRate < t.max);
    if(!table){ renderFuse(); return; }
@@ -1899,42 +1453,48 @@ function fuse(){
      };
    }
 
-   const attrRateMap = {};
-   let totalRate = 0;
+   // =====================================
+// 🔥 属性抽選（稼ぎrate割合ベース）
+// =====================================
+const attrRateMap = {};
+let totalRate = 0;
 
-   used.forEach(c=>{
-     const attrName = c.attribute ? c.attribute.name : "Default";
-     const charRate = c.rate ?? c.baseRate;
+used.forEach(c=>{
+  const attrName = c.attribute ? c.attribute.name : "Default";
+  const charRate = c.rate ?? c.baseRate;
 
-     attrRateMap[attrName] = (attrRateMap[attrName] || 0) + charRate;
-     totalRate += charRate;
-   });
+  attrRateMap[attrName] = (attrRateMap[attrName] || 0) + charRate;
+  totalRate += charRate;
+});
 
-   if(totalRate > 0){
-     const entries = Object.entries(attrRateMap);
+if(totalRate > 0){
+  const entries = Object.entries(attrRateMap);
 
-     let r = Math.random() * totalRate;
-     let selectedAttrName = entries[0][0];
+  let r = Math.random() * totalRate;
+  let selectedAttrName = entries[0][0];
 
-     for(let [name,rate] of entries){
-       r -= rate;
-       if(r <= 0){
-         selectedAttrName = name;
-         break;
-       }
-     }
+  for(let [name,rate] of entries){
+    r -= rate;
+    if(r <= 0){
+      selectedAttrName = name;
+      break;
+    }
+  }
 
-     if(selectedAttrName !== "Default"){
-       const attrData = attributes.find(a=>a.name === selectedAttrName);
-       newChar.attribute = attrData;
-     } else {
-       newChar.attribute = undefined;
-     }
+  if(selectedAttrName !== "Default"){
+    const attrData = attributes.find(a=>a.name === selectedAttrName);
+    newChar.attribute = attrData;
+  } else {
+    newChar.attribute = undefined;
+  }
 
-   }else{
-     newChar.attribute = undefined;
-   }
+}else{
+  newChar.attribute = undefined;
+}
 
+   // =====================================
+   // 🔥 変異継承
+   // =====================================
    const mutationPool = [];
 
    used.forEach(c=>{
@@ -1948,6 +1508,7 @@ function fuse(){
    newChar.mutations = [];
 
    if(mutationPool.length > 0){
+     // 1〜2個ランダム
      const inheritCount = Math.random() < 0.7 ? 1 : 2;
 
      for(let i=0;i<inheritCount;i++){
@@ -1958,6 +1519,9 @@ function fuse(){
      }
    }
 
+   // =====================================
+   // 🔥 レート再計算
+   // =====================================
    newChar.rate = newChar.baseRate;
 
    if(newChar.attribute){
@@ -1974,6 +1538,9 @@ function fuse(){
 
    newChar.reverse = 0;
 
+   // =====================================
+   // 配置
+   // =====================================
    const emptyIndex = base.findIndex(s=>s===null);
    if(emptyIndex !== -1){
      base[emptyIndex] = newChar;
@@ -1986,7 +1553,6 @@ function fuse(){
 
    showToast(`✨ ${getCharName(newChar)} が生成されました！`, "success");
 }
-
 function upgradeBase(){
   const nextLevel = baseLevel + 1;
   const required = reverseRequirements[nextLevel];
@@ -2047,8 +1613,9 @@ function updateReverseRequirementDisplay(){
 function startAdminEvent(){
   if(!isAdmin) return;
 
-  const endTime = Date.now() + (20 * 60 * 1000);
+  const endTime = Date.now() + (20 * 60 * 1000); // 20分後
 
+  // ✅ Firebaseに保存（全端末で同期）
   db.ref("globalEvent").set({
     active: true,
     luck: 67,
@@ -2057,6 +1624,7 @@ function startAdminEvent(){
     startedBy: playerId
   });
 
+  // ローカル状態も更新
   adminEventActive = true;
   globalLuckMultiplier = 67;
 
@@ -2064,10 +1632,12 @@ function startAdminEvent(){
 }
 
 function stopAdminEvent(){
+  // ✅ Firebaseから削除（全端末で同期）
   db.ref("globalEvent").set({
     active: false
   });
 
+  // ローカル状態も更新
   adminEventActive = false;
   globalLuckMultiplier = 1;
 
@@ -2075,6 +1645,16 @@ function stopAdminEvent(){
   document.getElementById("adminEventBanner").style.display = "none";
 
   showToast("⏹️ イベント終了", "info");
+}
+
+function stopAdminEvent(){
+  adminEventActive = false;
+  globalLuckMultiplier = 1;
+
+  clearInterval(eventCountdownInterval);
+  document.getElementById("adminEventBanner").style.display = "none";
+
+  showToast("イベント終了", "info");
 }
 
 function addMoney(amount){
@@ -2107,22 +1687,33 @@ function postTrade(){
     showNotification("⚠️ キャラを選択してください！", "error", 2000); 
     return; 
   }
-  const char = base[selectedMyChar];
-  const message = document.getElementById("tradeMessage").value;
-  db.ref("publicTrades").push({
-    owner: playerId, 
-    ownerCharIndex: selectedMyChar, 
-    ownerCharData: JSON.stringify(char), 
-    ownerCharName: getCharName(char), 
-    message: message,
-    status: "open", 
-    timestamp: Date.now()
+  const db = firebase.database();
+  db.ref("publicTrades").once("value").then(snap=>{
+    const trades = snap.val();
+    let myActiveListings = 0;
+    if(trades){
+      Object.values(trades).forEach(trade=>{
+        if(trade.owner === playerId && trade.status === "open") myActiveListings++;
+      });
+    }
+    
+    const char = base[selectedMyChar];
+    const message = document.getElementById("tradeMessage").value;
+    db.ref("publicTrades").push({
+      owner: playerId, 
+      ownerCharIndex: selectedMyChar, 
+      ownerCharData: JSON.stringify(char), 
+      ownerCharName: getCharName(char), 
+      message: message,  // ← これが重要
+      status: "open", 
+      timestamp: Date.now()
+    });
+    showToast("✅ キャラを出品しました！", "success");
+    document.getElementById("tradeMessage").value = "";
+    selectedMyChar = null;
+    renderMyCharList();
+    renderIncomingRequests();
   });
-  showToast("✅ キャラを出品しました！", "success");
-  document.getElementById("tradeMessage").value = "";
-  selectedMyChar = null;
-  renderMyCharList();
-  renderIncomingRequests();
 }
 
 function renderIncomingRequests(){
@@ -2244,6 +1835,7 @@ function cancelTradeRequest(tradeId){
   });
 }
 
+// ========== switchTradeTab 修正 ==========
 function switchTradeTab(tab) {
   currentTradeTab = tab;
   document.getElementById("offerTab").style.display = tab === "offer" ? "block" : "none";
@@ -2253,9 +1845,13 @@ function switchTradeTab(tab) {
 
   if(tab === "find"){
     renderPublicTrades();
+    // ❌ 申請キャラ選択UIは表示しない
+    const selectionDiv = document.getElementById("tradeCharSelectionDiv");
+    if(selectionDiv) selectionDiv.style.display = "none";
   }
 }
 
+// ========== 出品管理セクション（出品タブに追加） ==========
 function renderMyListings(){
   const container = document.getElementById("myListingsContainer");
   if(!container) return;
@@ -2328,6 +1924,7 @@ function renderMyListings(){
   });
 }
 
+// ========== 募集検索機能 ==========
 function setupGachaCharSearch(){
   const searchInput = document.getElementById("gachaCharSearch");
   if(!searchInput) return;
@@ -2343,10 +1940,12 @@ function setupGachaCharSearch(){
   });
 }
 
+// ========== renderPublicTrades 修正（検索対応） ==========
 function renderPublicTrades(){
   const container = document.getElementById("publicTradesList");
   container.innerHTML = "";
 
+  // 検索ボックスを追加
   if(!document.getElementById("gachaCharSearch")) {
     const searchBox = document.createElement("div");
     searchBox.style.marginBottom = "10px";
@@ -2366,6 +1965,7 @@ function renderPublicTrades(){
     
     container.appendChild(searchInput);
     
+    // 検索イベント設定
     setTimeout(() => setupGachaCharSearch(), 100);
   }
 
@@ -2395,6 +1995,7 @@ function renderPublicTrades(){
       div.setAttribute("data-char-name", getCharName(charData));
       div.style.marginBottom = "10px";
 
+      // ✅ キャラの詳細を表示
       let charDetailHtml = `
         <div style="margin:8px 0; padding:8px; background:#333; border-radius:5px;">
           <div style="font-weight:bold;">📦 出品キャラ:</div>
@@ -2408,6 +2009,7 @@ function renderPublicTrades(){
         ${charDetailHtml}
       `;
 
+      // 申請ボタン
       const btn = document.createElement("button");
       btn.textContent = "📨 申請する";
       btn.style.width = "100%";
@@ -2459,6 +2061,7 @@ function renderPublicTrades(){
   });
 }
 
+// ========== renderTradePanel 修正（出品セクション追加） ==========
 function renderTradePanel(){
   renderMyCharList();
   renderMyListings();
@@ -2477,6 +2080,92 @@ document.addEventListener("visibilitychange", ()=>{
   document.hidden ? stopSpawn() : startSpawn(); 
 });
 
+// ゲーム読み込み
+loadGame();
+updateReverseRequirementDisplay();
+saveGame();
+db.ref("globalNotice").on("value", snapshot=>{
+  const data = snapshot.val();
+  const box = document.getElementById("globalNoticeText");
+
+  if(data && data.message){
+    box.innerText = data.message;
+  } else {
+    box.innerText = "現在お知らせはありません";
+  }
+});
+// グローバルイベント監視
+db.ref("globalEvent").on("value", snapshot=>{
+  const data = snapshot.val();
+  const eventStatus = document.getElementById("eventStatus");
+  const banner = document.getElementById("adminEventBanner");
+  
+  if(data && data.active){
+    adminEventActive = true;
+    globalLuckMultiplier = data.luck || 67;
+    banner.style.display = "block";
+    
+    clearInterval(eventCountdownInterval);
+    eventCountdownInterval = setInterval(()=>{
+      const now = Date.now();
+      const timeLeft = data.endTime - now;
+      
+      if(timeLeft <= 0){
+        adminEventActive = false;
+        globalLuckMultiplier = 1;
+        banner.style.display = "none";
+        eventStatus.innerText = "イベント停止中";
+        clearInterval(eventCountdownInterval);
+        db.ref("globalEvent").set({active:false});
+        showToast("⏰ 管理者イベントが終了しました", "info");
+      } else {
+        const minutes = Math.floor(timeLeft / 60000);
+        const seconds = Math.floor((timeLeft % 60000) / 1000);
+        document.getElementById("adminEventTime").innerText = 
+          minutes.toString().padStart(2,"0") + ":" + 
+          seconds.toString().padStart(2,"0");
+        eventStatus.innerHTML = `🔥 イベント開催中<br>⏰ ${minutes}分${seconds}秒`;
+      }
+    }, 1000);
+    
+  } else {
+    adminEventActive = false;
+    globalLuckMultiplier = 1;
+    banner.style.display = "none";
+    eventStatus.innerText = "イベント停止中";
+    clearInterval(eventCountdownInterval);
+  }
+});
+
+// ドラッグ機能（管理者パネル）
+const adminPanel = document.getElementById("adminPanel");
+let isDragging = false, offsetX, offsetY;
+
+adminPanel.addEventListener("mousedown", (e)=>{ 
+  isDragging = true; 
+  offsetX = e.clientX - adminPanel.offsetLeft; 
+  offsetY = e.clientY - adminPanel.offsetTop; 
+  adminPanel.style.right = "auto"; 
+});
+
+document.addEventListener("mousemove", (e)=>{ 
+  if(!isDragging) return; 
+  adminPanel.style.left = (e.clientX - offsetX) + "px"; 
+  adminPanel.style.top = (e.clientY - offsetY) + "px"; 
+});
+
+document.addEventListener("mouseup", ()=>{ 
+  isDragging = false; 
+});
+
+// 収益加算（毎秒）
+setInterval(()=>{ 
+  let income = base.filter(c=>c).reduce((sum,c)=>sum+c.rate,0); 
+  money += income * incomeMultiplier; 
+  updateUI(); 
+}, 1000);
+
+// セーブ機能
 function saveGame(){
   localStorage.setItem("brainrotSave", JSON.stringify({
     money,
@@ -2496,14 +2185,22 @@ function loadGame(){
   capacity = save.capacity;
   incomeMultiplier = save.incomeMultiplier;
   base = save.base.map(c => {
-    if(!c) return null;
-    if(c.attribute) c.attribute = attributes.find(a => a.name === c.attribute.name);
-    if(c.mutations) c.mutations = c.mutations.map(m => mutations.find(mut => mut.name === m.name));
-    return c;
-  });
+  if(!c) return null;
+  if(c.attribute) c.attribute = attributes.find(a => a.name === c.attribute.name);
+  if(c.mutations) c.mutations = c.mutations.map(m => mutations.find(mut => mut.name === m.name));
+  return c;
+});
 }
 
 setInterval(saveGame, 2000);
+
+// 初期化処理
+ensureBaseSlots();
+renderBase();
+renderFuse();
+startSpawn();
+updateUI();
+updateReverseRequirementDisplay();
 </script>
 
 </body>
