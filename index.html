@@ -919,10 +919,15 @@ function openCodePrompt(){
     showToast("❌ パスワードが違います", "error");
   }
 }
-// ========== ガチャ機能 ==========
-// ========== ガチャ関数（既存のままで OK） ==========
+
 function pullGacha() {
   const price = 1000000000000; // 1兆
+
+  // 🔴 基地が満タンなら引けない
+  if(base.every(s => s !== null)){
+    showToast("🚫 基地がいっぱいです！空きを作ってください", "error");
+    return;
+  }
 
   if(money < price) {
     showToast("💸 お金が足りません（必要: 1T）", "error");
@@ -957,7 +962,7 @@ function pullGacha() {
   const secret = secretCharacters.find(s => s.character === chosen);
   if(!secret) {
     showToast("エラー: キャラが見つかりません", "error");
-    money += price; // 返金
+    money += price;
     return;
   }
 
@@ -973,19 +978,14 @@ function pullGacha() {
   };
 
   const emptyIdx = base.findIndex(s => s === null);
-  if(emptyIdx !== -1) {
-    base[emptyIdx] = char;
-    showToast(`🎉 ${chosen} が出ました！ (+${format(secret.rate)}/s)`, "success");
-  } else {
-    selectedForFusion.push(char);
-    showToast(`🎉 ${chosen} が出ました！（融合待機に）`, "info");
-  }
+  base[emptyIdx] = char;
+
+  showToast(`🎉 ${chosen} が出ました！ (+${format(secret.rate)}/s)`, "success");
 
   updateUI();
   renderBase();
   renderFuse();
 
-  // 結果表示（3秒後に消える）
   const resultDiv = document.getElementById("gachaResult");
   resultDiv.textContent = `✨ ${chosen} ✨`;
   setTimeout(() => {
