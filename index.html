@@ -923,66 +923,7 @@ const fuseTable = [
 let money=0, baseLevel=1, capacity=10, incomeMultiplier=1, base=[], fuseList=[], spawnInterval;
 
 function openCodePrompt(){
-
-  const overlay = document.createElement("div");
-  overlay.id = "codeOverlay";
-  overlay.style.position = "fixed";
-  overlay.style.top = "0";
-  overlay.style.left = "0";
-  overlay.style.width = "100%";
-  overlay.style.height = "100%";
-  overlay.style.background = "rgba(0,0,0,0.6)";
-  overlay.style.display = "flex";
-  overlay.style.alignItems = "center";
-  overlay.style.justifyContent = "center";
-  overlay.style.zIndex = "9999";
-
-  const box = document.createElement("div");
-  box.style.background = "#fff";
-  box.style.padding = "20px";
-  box.style.borderRadius = "10px";
-  box.style.textAlign = "center";
-  box.style.width = "260px";
-
-  box.innerHTML = `
-    <h3>コード入力</h3>
-    <input type="password" id="adminCodeInput" placeholder="コード" style="width:90%;padding:8px;margin-top:10px;">
-    <br><br>
-    <button id="codeOkBtn">OK</button>
-    <button id="codeCancelBtn">キャンセル</button>
-  `;
-
-  overlay.appendChild(box);
-  document.body.appendChild(overlay);
-
-  const input = document.getElementById("adminCodeInput");
-
-  function submitCode(){
-    const code = input.value;
-
-    if(code === "8101919114514"){
-      isAdmin = true;
-      document.body.style.boxShadow = "0 0 40px gold inset";
-      document.getElementById("adminPanel").style.display = "block";
-      showToast("👑 管理者モードON","success");
-    }else{
-      showToast("❌ パスワードが違います","error");
-    }
-
-    overlay.remove();
-  }
-
-  document.getElementById("codeOkBtn").onclick = submitCode;
-  document.getElementById("codeCancelBtn").onclick = () => overlay.remove();
-
-  // EnterキーでもOK
-  input.addEventListener("keypress", function(e){
-    if(e.key === "Enter"){
-      submitCode();
-    }
-  });
-
-  input.focus();
+  document.getElementById("codeBox").style.display = "flex";
 }
 
 function closeCodePrompt(){
