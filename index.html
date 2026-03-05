@@ -1063,7 +1063,8 @@ function ensureBaseSlots(){
 }
 
 function updateUI(){
-  const cost = const reverseCost = {
+
+  const reverseCost = {
     2: 1e6,
     3: 5e6,
     4: 25e6,
@@ -1089,13 +1090,22 @@ function updateUI(){
     24: 100e18,
     25: 500e18
   };
+
+  const cost = reverseCost[baseLevel + 1] || 0;
+
   document.getElementById("money").innerText = format(money);
   document.getElementById("level").innerText = baseLevel;
   document.getElementById("cap").innerText = capacity;
   document.getElementById("multiplier").innerText = incomeMultiplier.toFixed(1);
-  document.getElementById("upgradeBtn").innerText = "リバース (" + format(cost) + ")";
-}
 
+  if(cost){
+    document.getElementById("upgradeBtn").innerText =
+      "リバース (" + format(cost) + ")";
+  }else{
+    document.getElementById("upgradeBtn").innerText =
+      "MAXレベル";
+  }
+}
 function toggleTradePanel(){
   const panel = document.getElementById("tradePanel");
   const fuseArea = document.getElementById("fuseArea");
