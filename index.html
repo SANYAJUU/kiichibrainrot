@@ -534,12 +534,23 @@ firebase.initializeApp(firebaseConfig);
   <button onclick="addMoney(10000000000000)" style="background:#4CAF50;">💰 +10T</button>
 
   <hr>
-  <h4 style="color:gold; margin-top:10px;">🎯 イベント選択</h4>
+
+  <h4 style="color:gold; margin-top:10px;">🎯 手動イベント開始</h4>
   <button onclick="startSpecialEvent('Toxic')" style="background:#00ff00; color:black; font-weight:bold; width:100%; margin:5px 0;">☢️ Toxicイベント開始</button>
   <button onclick="startSpecialEvent('Shadow')" style="background:#360000; color:#fff; font-weight:bold; width:100%; margin:5px 0;">🌑 Shadowイベント開始</button>
   <button onclick="startSpecialEvent('Void')" style="background:#000; color:#fff; font-weight:bold; width:100%; margin:5px 0; border:2px solid #666;">🌌 Voidイベント開始</button>
   
   <button onclick="stopAdminEvent()" style="background:#d32f2f; width:100%; margin:5px 0;">🛑 イベント終了</button>
+
+  <hr>
+
+  <!-- ✅ 新規追加：スケジュール表示 -->
+  <h4 style="color:#FFD700;">📅 自動スケジュール</h4>
+  <div id="scheduleDisplay" style="font-size:11px; background:#222; padding:8px; border-radius:5px; max-height:150px; overflow-y:auto;">
+    <div style="color:#4CAF50;">☢️ Toxic: 0:00, 2:00, 4:00, 6:00, 8:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00, 22:00 (各20分)</div>
+    <div style="color:#2196F3; margin-top:5px;">🌌 Void: 0:40, 3:40, 6:40, 9:40, 12:40, 15:40, 18:40, 21:40 (各20分)</div>
+    <div style="color:#FF69B4; margin-top:5px;">🌑 Shadow: 1:20, 2:20, 3:20, 4:20, 5:20, ..., 23:20 (毎時20分, 各20分)</div>
+  </div>
 
   <hr>
 
@@ -1674,6 +1685,148 @@ function startSpecialEvent(eventType){
   showToast(`🎉 ${eventType}イベント開始！`, "success");
 }
 
+// ========== イベントスケジュール定義 ==========
+const eventSchedule = [
+  // Toxicイベント：0:00~0:20, 2:00~2:20, 4:00~4:20, 6:00~6:20, ...
+  { type: 'Toxic', startMinute: 0, intervalHours: 2 },
+  // Voidイベント：0:40~1:00, 3:40~4:00, 6:40~7:00, ...
+  { type: 'Void', startMinute: 40, intervalHours: 3 },
+  // Shadowイベント：1:20~1:40, 2:20~2:40, 3:20~3:40, 4:20~4:40, ...
+  { type: 'Shadow', startMinute: 20, intervalHours: 1 }
+];
+
+const eventDuration = 20 * 60 * 1000; // 20分（ミリ秒）
+
+// ========== 次のイベント時刻を計算する関数 ==========
+function getNextEventTime(type, startMinute, intervalHours) {
+  const now = new Date();
+  const currentHours = now.getHours();
+  const currentMinutes = now.getMinutes();
+  const currentTotalMinutes = currentHours * 60 + currentMinutes;
+  
+  let nextEventHours;
+  
+  // 今日中のイベント時刻を全て計算
+  const todayEventTimes = [];
+  for(let h = 0; h < 24; h += intervalHours) {
+    todayEventTimes.push(h * 60 + startMinute);
+  }
+  
+  // 次のイベント時刻を探す
+  for(let eventMinutes of todayEventTimes) {
+    if(eventMinutes > currentTotalMinutes) {
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                     Math.floor(eventMinutes / 60), eventMinutes % 60, 0, 0);
+    }
+  }
+  
+  // 今日中にないなら、明日の最初のイベント
+  const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  return new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(),
+                 Math.floor(startMinute / 60), startMinute % 60, 0, 0);
+}
+
+// ========== スケジュール監視関数 ==========
+function monitorAutoSchedule() {
+  // 毎分チェック
+  setInterval(() => {
+    const now = new Date();
+    
+    eventSchedule.forEach(schedule => {
+      const nextEventTime = getNextEventTime(schedule.type, schedule.startMinute, schedule.intervalHours);
+      const timeUntilEvent = nextEventTime.getTime() - now.getTime();
+      
+      // イベント開始時刻から±30秒以内ならイベント開始
+      if(timeUntilEvent > -30000 && timeUntilEvent <= 1000) {
+        startAutoEvent(schedule.type);
+      }
+    });
+    
+    // イベント終了チェック
+    checkEventEnd();
+  }, 1000); // 1秒ごとにチェック
+}
+
+// ========== 自動イベント開始関数 ==========
+function startAutoEvent(eventType) {
+  // 既にイベント中なら開始しない
+  if(adminEventActive && activeEventType === eventType) return;
+  
+  const endTime = Date.now() + eventDuration;
+  
+  db.ref("globalEvent").set({
+    active: true,
+    type: eventType,
+    startTime: Date.now(),
+    endTime: endTime,
+    isAutoEvent: true // 自動イベントフラグ
+  });
+  
+  activeEventType = eventType;
+  adminEventActive = true;
+  
+  console.log(`[自動] ${eventType}イベント開始`);
+}
+
+// ========== イベント終了チェック関数 ==========
+function checkEventEnd() {
+  db.ref("globalEvent").once("value").then(snapshot => {
+    const data = snapshot.val();
+    
+    if(data && data.active && data.endTime) {
+      const now = Date.now();
+      
+      if(now >= data.endTime) {
+        db.ref("globalEvent").set({
+          active: false
+        });
+        
+        activeEventType = null;
+        adminEventActive = false;
+        
+        console.log(`[自動] イベント終了`);
+      }
+    }
+  });
+}
+
+// ========== 管理者パネルの修正：手動イベント開始時に自動フラグを削除 ==========
+function startSpecialEvent(eventType){
+  if(!isAdmin) return;
+
+  const endTime = Date.now() + eventDuration; // 20分
+
+  // ✅ Firebaseに保存（手動イベントなのでisAutoEventはfalse）
+  db.ref("globalEvent").set({
+    active: true,
+    type: eventType,
+    startTime: Date.now(),
+    endTime: endTime,
+    isAutoEvent: false, // 手動イベント
+    startedBy: playerId
+  });
+
+  activeEventType = eventType;
+  adminEventActive = true;
+
+  showToast(`🎉 ${eventType}イベント開始！`, "success");
+}
+
+// ========== ゲーム初期化時にスケジュール監視を開始 ==========
+// ページの最後の初期化セクションに以下を追加してください：
+
+// 現在のイベント状態をロード
+db.ref("globalEvent").once("value").then(snapshot => {
+  const data = snapshot.val();
+  if(data && data.active) {
+    adminEventActive = true;
+    activeEventType = data.type || null;
+  }
+});
+
+// 自動スケジュール監視を開始
+monitorAutoSchedule();
+
 // ========== stopAdminEvent の修正 ==========
 function stopAdminEvent(){
   if(!isAdmin) return;
@@ -2253,48 +2406,46 @@ db.ref("globalNotice").on("value", snapshot=>{
     box.innerText = "現在お知らせはありません";
   }
 });
-// グローバルイベント監視
-db.ref("globalEvent").on("value", snapshot=>{
-  const data = snapshot.val();
-  const eventStatus = document.getElementById("eventStatus");
-  const banner = document.getElementById("adminEventBanner");
+<div id="adminPanel">
+  <h3 style="color:gold;">👑 管理者パネル</h3>
+
+  <button onclick="addMoney(100000000000)" style="background:#4CAF50;">💰 +100B</button>
+  <button onclick="addMoney(10000000000000)" style="background:#4CAF50;">💰 +10T</button>
+
+  <hr>
+
+  <h4 style="color:gold; margin-top:10px;">🎯 手動イベント開始</h4>
+  <button onclick="startSpecialEvent('Toxic')" style="background:#00ff00; color:black; font-weight:bold; width:100%; margin:5px 0;">☢️ Toxicイベント開始</button>
+  <button onclick="startSpecialEvent('Shadow')" style="background:#360000; color:#fff; font-weight:bold; width:100%; margin:5px 0;">🌑 Shadowイベント開始</button>
+  <button onclick="startSpecialEvent('Void')" style="background:#000; color:#fff; font-weight:bold; width:100%; margin:5px 0; border:2px solid #666;">🌌 Voidイベント開始</button>
   
-  if(data && data.active){
-    adminEventActive = true;
-    globalLuckMultiplier = data.luck || 67;
-    banner.style.display = "block";
-    
-    clearInterval(eventCountdownInterval);
-    eventCountdownInterval = setInterval(()=>{
-      const now = Date.now();
-      const timeLeft = data.endTime - now;
-      
-      if(timeLeft <= 0){
-        adminEventActive = false;
-        globalLuckMultiplier = 1;
-        banner.style.display = "none";
-        eventStatus.innerText = "イベント停止中";
-        clearInterval(eventCountdownInterval);
-        db.ref("globalEvent").set({active:false});
-        showToast("⏰ 管理者イベントが終了しました", "info");
-      } else {
-        const minutes = Math.floor(timeLeft / 60000);
-        const seconds = Math.floor((timeLeft % 60000) / 1000);
-        document.getElementById("adminEventTime").innerText = 
-          minutes.toString().padStart(2,"0") + ":" + 
-          seconds.toString().padStart(2,"0");
-        eventStatus.innerHTML = `🔥 イベント開催中<br>⏰ ${minutes}分${seconds}秒`;
-      }
-    }, 1000);
-    
-  } else {
-    adminEventActive = false;
-    globalLuckMultiplier = 1;
-    banner.style.display = "none";
-    eventStatus.innerText = "イベント停止中";
-    clearInterval(eventCountdownInterval);
-  }
-});
+  <button onclick="stopAdminEvent()" style="background:#d32f2f; width:100%; margin:5px 0;">🛑 イベント終了</button>
+
+  <hr>
+
+  <!-- ✅ 新規追加：スケジュール表示 -->
+  <h4 style="color:#FFD700;">📅 自動スケジュール</h4>
+  <div id="scheduleDisplay" style="font-size:11px; background:#222; padding:8px; border-radius:5px; max-height:150px; overflow-y:auto;">
+    <div style="color:#4CAF50;">☢️ Toxic: 0:00, 2:00, 4:00, 6:00, 8:00, 10:00, 12:00, 14:00, 16:00, 18:00, 20:00, 22:00 (各20分)</div>
+    <div style="color:#2196F3; margin-top:5px;">🌌 Void: 0:40, 3:40, 6:40, 9:40, 12:40, 15:40, 18:40, 21:40 (各20分)</div>
+    <div style="color:#FF69B4; margin-top:5px;">🌑 Shadow: 1:20, 2:20, 3:20, 4:20, 5:20, ..., 23:20 (毎時20分, 各20分)</div>
+  </div>
+
+  <hr>
+
+  <h4>📢 全体メッセージ送信</h4>
+  <input type="text" id="adminNoticeInput" placeholder="例：本日20:00〜イベント開催">
+  <button onclick="sendGlobalNotice()" style="background:gold; color:black;">
+    送信
+  </button>
+  <button onclick="clearGlobalNotice()" style="background:#555;">
+    削除
+  </button>
+  <hr>
+
+  <button onclick="closeAdminPanel()" style="background:#555;">❌ 閉じる</button>
+
+</div>
 
 // ドラッグ機能（管理者パネル）
 const adminPanel = document.getElementById("adminPanel");
