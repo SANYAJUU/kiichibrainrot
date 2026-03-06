@@ -527,7 +527,6 @@ firebase.initializeApp(firebaseConfig);
     word-break: break-word;
   "></div>
 </div>
-
 <div id="adminPanel">
   <h3 style="color:gold;">👑 管理者パネル</h3>
 
@@ -535,24 +534,28 @@ firebase.initializeApp(firebaseConfig);
   <button onclick="addMoney(10000000000000)" style="background:#4CAF50;">💰 +10T</button>
 
   <hr>
-
-  <button onclick="startAdminEvent()" style="background:#ff9800;">🎉 イベント開始</button>
-  <button onclick="stopAdminEvent()" style="background:#d32f2f;">🛑 イベント終了</button>
+  <h4 style="color:gold; margin-top:10px;">🎯 イベント選択</h4>
+  <button onclick="startSpecialEvent('Toxic')" style="background:#00ff00; color:black; font-weight:bold; width:100%; margin:5px 0;">☢️ Toxicイベント開始</button>
+  <button onclick="startSpecialEvent('Shadow')" style="background:#360000; color:#fff; font-weight:bold; width:100%; margin:5px 0;">🌑 Shadowイベント開始</button>
+  <button onclick="startSpecialEvent('Void')" style="background:#000; color:#fff; font-weight:bold; width:100%; margin:5px 0; border:2px solid #666;">🌌 Voidイベント開始</button>
+  
+  <button onclick="stopAdminEvent()" style="background:#d32f2f; width:100%; margin:5px 0;">🛑 イベント終了</button>
 
   <hr>
-<h4>📢 全体メッセージ送信</h4>
-<input type="text" id="adminNoticeInput" placeholder="例：本日20:00〜イベント開催">
-<button onclick="sendGlobalNotice()" style="background:gold; color:black;">
-送信
-</button>
-<button onclick="clearGlobalNotice()" style="background:#555;">
-削除
-</button>
+
+  <h4>📢 全体メッセージ送信</h4>
+  <input type="text" id="adminNoticeInput" placeholder="例：本日20:00〜イベント開催">
+  <button onclick="sendGlobalNotice()" style="background:gold; color:black;">
+    送信
+  </button>
+  <button onclick="clearGlobalNotice()" style="background:#555;">
+    削除
+  </button>
   <hr>
 
   <button onclick="closeAdminPanel()" style="background:#555;">❌ 閉じる</button>
 
-  </div>
+</div>
 
 <div id="carpet"></div>
 <div id="reverseRequirementDisplay"
@@ -1194,87 +1197,6 @@ function showResetDialog(){
   });
 }
 
-function getRandomRarity(){
-  const adjusted = rarities.map(r=>{
-    let chance = r.chance;
-
-    if(adminEventActive && r.name === "SECRET"){
-      chance *= 67;
-    }
-
-    return {...r, chance};
-  });
-
-  const total = adjusted.reduce((s,r)=>s+r.chance,0);
-  const rand = Math.random()*total;
-  let sum=0;
-  for(let r of adjusted){
-    sum+=r.chance;
-    if(rand<=sum) return r;
-  }
-  return adjusted[adjusted.length-1];
-}
-
-function spawnWalker(){
-  let baseData = getRandomRarity();
-  let data = {...baseData};
-  if(baseData.name === "SECRET"){
-    // ===== 修正: 確率付きシークレットキャラ選択 =====
-    const selectedSecret = selectWeightedSecret();
-    const pick = secretCharacters.find(s => s.character === selectedSecret);
-    data = {name:"SECRET", character: pick.character, rate: pick.rate, color:"black"};
-  }
-  let totalChance = attributes.reduce((s,a)=>s+a.chance,0);
-  let rand = Math.random()*totalChance;
-  let sum = 0;
-  for(let attr of attributes){ sum += attr.chance; if(rand <= sum){ data.attribute = attr; break; }}
-  
-  data.mutations = [];
-  if(adminEventActive){
-    mutations.forEach(m=>{ if(Math.random()<0.15) data.mutations.push(m); });
-  }
-  let totalMultiplier = data.attribute.multiplier;
-  data.mutations.forEach(m=>totalMultiplier += m.bonus);
-  data.baseRate = data.rate; // ← まず素の値を保存
-  data.rate = Math.floor(data.baseRate * totalMultiplier); // ← 表示用
-  data.reverse = 0;
-
-  const div = document.createElement("div");
-  div.className = "walker";
-  div.style.background = data.attribute ? data.attribute.color : "#444";
-  div.style.border = "2px solid white";
-
-  let attributeName = data.attribute ? data.attribute.name : "Default";
-  let rarityText = data.name === "SECRET" ? data.character : data.name;
-  const raritySpan = document.createElement("span");
-  raritySpan.innerText = rarityText;
-  switch(data.name){
-    case "COMMON": raritySpan.style.background="#6b3e1d"; break;
-    case "RARE": raritySpan.style.background="#4dd0ff"; raritySpan.style.color="#003344"; break;
-    case "EPIC": raritySpan.style.background="purple"; break;
-    case "LEGENDARY": raritySpan.style.background="yellow"; break;
-    case "MYTHIC": raritySpan.style.background="gold"; break;
-    case "GOD": raritySpan.style.background="gray"; raritySpan.style.color="cyan"; break;
-    case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
-  }
-  raritySpan.style.padding="2px 6px"; 
-  raritySpan.style.borderRadius="6px"; 
-  raritySpan.style.fontSize="10px";
-  let mutationIcons = (data.mutations && data.mutations.length > 0) ? data.mutations.map(m=>m.icon).join("") : "";
-  div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(data.rate) + "/s</div>";
-  div.style.top = "-100px";
-  document.body.appendChild(div);
-  let pos=-100;
-  const move = setInterval(()=>{
-    pos += 1;
-    div.style.top = pos + "px";
-    if(pos>window.innerHeight){ div.remove(); clearInterval(move); }
-  },30);
-  div.onclick = ()=>{
-    const emptyIndex = base.findIndex(s=>s===null);
-    if(emptyIndex!==-1){ base[emptyIndex]=data; renderBase(); div.remove(); clearInterval(move); }
-  };
-}
 
 // ===== 新規追加: 重み付きランダム選択関数 =====
 function selectWeightedSecret(){
@@ -1727,6 +1649,208 @@ function updateReverseRequirementDisplay(){
     </div>
   `;
 }
+// ========== グローバル変数の追加 ==========
+let activeEventType = null; // 現在のイベントタイプ（'Toxic', 'Shadow', 'Void', null）
+
+// ========== 特定属性のイベント開始関数 ==========
+function startSpecialEvent(eventType){
+  if(!isAdmin) return;
+
+  const endTime = Date.now() + (20 * 60 * 1000); // 20分後
+
+  // ✅ Firebaseに保存
+  db.ref("globalEvent").set({
+    active: true,
+    type: eventType,
+    startTime: Date.now(),
+    endTime: endTime,
+    startedBy: playerId
+  });
+
+  // ローカル状態も更新
+  activeEventType = eventType;
+  adminEventActive = true;
+
+  showToast(`🎉 ${eventType}イベント開始！`, "success");
+}
+
+// ========== stopAdminEvent の修正 ==========
+function stopAdminEvent(){
+  if(!isAdmin) return;
+
+  db.ref("globalEvent").set({
+    active: false
+  });
+
+  activeEventType = null;
+  adminEventActive = false;
+  globalLuckMultiplier = 1;
+
+  clearInterval(eventCountdownInterval);
+  document.getElementById("adminEventBanner").style.display = "none";
+
+  showToast("⏹️ イベント終了", "info");
+}
+
+// ========== getRandomRarity() の修正 ==========
+function getRandomRarity(){
+  const adjusted = rarities.map(r=>{
+    let chance = r.chance;
+
+    // ✅ 修正：activeEventType に応じてSECRET確率を10倍
+    if(adminEventActive && activeEventType && r.name === "SECRET"){
+      chance *= 10;
+    }
+
+    return {...r, chance};
+  });
+
+  const total = adjusted.reduce((s,r)=>s+r.chance,0);
+  const rand = Math.random()*total;
+  let sum=0;
+  for(let r of adjusted){
+    sum+=r.chance;
+    if(rand<=sum) return r;
+  }
+  return adjusted[adjusted.length-1];
+}
+
+// ========== spawnWalker() の修正 ==========
+function spawnWalker(){
+  let baseData = getRandomRarity();
+  let data = {...baseData};
+  if(baseData.name === "SECRET"){
+    const selectedSecret = selectWeightedSecret();
+    const pick = secretCharacters.find(s => s.character === selectedSecret);
+    data = {name:"SECRET", character: pick.character, rate: pick.rate, color:"black"};
+  }
+
+  let totalChance = attributes.reduce((s,a)=>s+a.chance,0);
+  let rand = Math.random()*totalChance;
+  let sum = 0;
+  for(let attr of attributes){ 
+    sum += attr.chance; 
+    
+    // ✅ 修正：activeEventType に応じて特定属性の確率を100倍
+    let adjustedChance = attr.chance;
+    if(adminEventActive && activeEventType){
+      if(activeEventType === 'Toxic' && attr.name === 'Toxic'){
+        adjustedChance *= 100;
+      } else if(activeEventType === 'Shadow' && attr.name === 'Shadow'){
+        adjustedChance *= 100;
+      } else if(activeEventType === 'Void' && attr.name === 'Void'){
+        adjustedChance *= 100;
+      }
+    }
+    
+    if(rand <= sum){ 
+      data.attribute = attr; 
+      break; 
+    }
+  }
+  
+  data.mutations = [];
+  if(adminEventActive){
+    mutations.forEach(m=>{ if(Math.random()<0.15) data.mutations.push(m); });
+  }
+  let totalMultiplier = data.attribute.multiplier;
+  data.mutations.forEach(m=>totalMultiplier += m.bonus);
+  data.baseRate = data.rate;
+  data.rate = Math.floor(data.baseRate * totalMultiplier);
+  data.reverse = 0;
+
+  const div = document.createElement("div");
+  div.className = "walker";
+  div.style.background = data.attribute ? data.attribute.color : "#444";
+  div.style.border = "2px solid white";
+
+  let attributeName = data.attribute ? data.attribute.name : "Default";
+  let rarityText = data.name === "SECRET" ? data.character : data.name;
+  const raritySpan = document.createElement("span");
+  raritySpan.innerText = rarityText;
+  switch(data.name){
+    case "COMMON": raritySpan.style.background="#6b3e1d"; break;
+    case "RARE": raritySpan.style.background="#4dd0ff"; raritySpan.style.color="#003344"; break;
+    case "EPIC": raritySpan.style.background="purple"; break;
+    case "LEGENDARY": raritySpan.style.background="yellow"; break;
+    case "MYTHIC": raritySpan.style.background="gold"; break;
+    case "GOD": raritySpan.style.background="gray"; raritySpan.style.color="cyan"; break;
+    case "SECRET": raritySpan.style.background="black"; raritySpan.style.color="red"; break;
+  }
+  raritySpan.style.padding="2px 6px"; 
+  raritySpan.style.borderRadius="6px"; 
+  raritySpan.style.fontSize="10px";
+  let mutationIcons = (data.mutations && data.mutations.length > 0) ? data.mutations.map(m=>m.icon).join("") : "";
+  div.innerHTML = "<div>[" + attributeName + "]</div><div>" + raritySpan.outerHTML + "</div><div>" + mutationIcons + " +" + format(data.rate) + "/s</div>";
+  div.style.top = "-100px";
+  document.body.appendChild(div);
+  let pos=-100;
+  const move = setInterval(()=>{
+    pos += 1;
+    div.style.top = pos + "px";
+    if(pos>window.innerHeight){ div.remove(); clearInterval(move); }
+  },30);
+  div.onclick = ()=>{
+    const emptyIndex = base.findIndex(s=>s===null);
+    if(emptyIndex!==-1){ base[emptyIndex]=data; renderBase(); div.remove(); clearInterval(move); }
+  };
+}
+
+// ========== グローバルイベント監視の修正 ==========
+db.ref("globalEvent").on("value", snapshot=>{
+  const data = snapshot.val();
+  const eventStatus = document.getElementById("eventStatus");
+  const banner = document.getElementById("adminEventBanner");
+  
+  if(data && data.active){
+    adminEventActive = true;
+    activeEventType = data.type || null;
+    banner.style.display = "block";
+    
+    // ✅ バナーのテキストをイベントタイプに応じて変更
+    let bannerText = "👑 管理者イベント発動中";
+    if(data.type === 'Toxic'){
+      bannerText = "☢️ Toxicイベント発動中";
+    } else if(data.type === 'Shadow'){
+      bannerText = "🌑 Shadowイベント発動中";
+    } else if(data.type === 'Void'){
+      bannerText = "🌌 Voidイベント発動中";
+    }
+    
+    clearInterval(eventCountdownInterval);
+    eventCountdownInterval = setInterval(()=>{
+      const now = Date.now();
+      const timeLeft = data.endTime - now;
+      
+      if(timeLeft <= 0){
+        adminEventActive = false;
+        activeEventType = null;
+        banner.style.display = "none";
+        eventStatus.innerText = "イベント停止中";
+        clearInterval(eventCountdownInterval);
+        db.ref("globalEvent").set({active:false});
+        showToast("⏰ イベントが終了しました", "info");
+      } else {
+        const minutes = Math.floor(timeLeft / 60000);
+        const seconds = Math.floor((timeLeft % 60000) / 1000);
+        document.getElementById("adminEventTime").innerText = 
+          minutes.toString().padStart(2,"0") + ":" + 
+          seconds.toString().padStart(2,"0");
+        
+        banner.innerHTML = bannerText + "<br>⏳ 残り時間: " + 
+          minutes.toString().padStart(2,"0") + ":" + 
+          seconds.toString().padStart(2,"0");
+      }
+    }, 1000);
+    
+  } else {
+    adminEventActive = false;
+    activeEventType = null;
+    banner.style.display = "none";
+    eventStatus.innerText = "イベント停止中";
+    clearInterval(eventCountdownInterval);
+  }
+});
 
 function startAdminEvent(){
   if(!isAdmin) return;
@@ -1749,21 +1873,6 @@ function startAdminEvent(){
   showToast("🎉 管理者イベント開始！", "success");
 }
 
-function stopAdminEvent(){
-  // ✅ Firebaseから削除（全端末で同期）
-  db.ref("globalEvent").set({
-    active: false
-  });
-
-  // ローカル状態も更新
-  adminEventActive = false;
-  globalLuckMultiplier = 1;
-
-  clearInterval(eventCountdownInterval);
-  document.getElementById("adminEventBanner").style.display = "none";
-
-  showToast("⏹️ イベント終了", "info");
-}
 
 function addMoney(amount){
   if(!isAdmin) return;
