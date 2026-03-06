@@ -289,20 +289,6 @@ button{cursor:pointer;}
   padding:8px;
 }
 
-#adminEventBanner{
-  display:none;
-  position:fixed;
-  right:20px;
-  bottom:80px;
-  background:linear-gradient(45deg,gold,orange);
-  color:black;
-  font-weight:bold;
-  padding:12px 20px;
-  border-radius:10px;
-  box-shadow:0 0 15px gold;
-  z-index:2000;
-  animation:pulse 1s infinite alternate;
-}
 
 @keyframes pulse{
   from { transform:scale(1); box-shadow:0 0 10px gold; }
@@ -532,7 +518,7 @@ firebase.initializeApp(firebaseConfig);
      style="
        position:fixed;
        top:10px;
-       left:50%;
+       left:70%;
        transform:translateX(-50%);
        background:#111;
        border:2px solid #FFD700;
@@ -657,11 +643,6 @@ border-radius:8px;
   <div id="fuseSlots"></div>
   <button onclick="fuse()" style="width:100%; background:#2196F3; margin-top:8px;">合成</button>
   <button onclick="toggleFusePanel()" style="width:100%; margin-top:5px; background:#d32f2f;">✕ 閉じる</button>
-</div>
-
-<div id="adminEventBanner">
-  👑 管理者イベント発動中<br>
-  ⏳ 残り時間: <span id="adminEventTime">--:--</span>
 </div>
 <div id="notificationPanel"></div>
 <div id="dialogBackdrop"></div>
