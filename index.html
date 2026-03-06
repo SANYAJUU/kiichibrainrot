@@ -1796,62 +1796,6 @@ function spawnWalker(){
   };
 }
 
-// ========== グローバルイベント監視の修正 ==========
-db.ref("globalEvent").on("value", snapshot=>{
-  const data = snapshot.val();
-  const eventStatus = document.getElementById("eventStatus");
-  const banner = document.getElementById("adminEventBanner");
-  
-  if(data && data.active){
-    adminEventActive = true;
-    activeEventType = data.type || null;
-    banner.style.display = "block";
-    
-    // ✅ バナーのテキストをイベントタイプに応じて変更
-    let bannerText = "👑 管理者イベント発動中";
-    if(data.type === 'Toxic'){
-      bannerText = "☢️ Toxicイベント発動中";
-    } else if(data.type === 'Shadow'){
-      bannerText = "🌑 Shadowイベント発動中";
-    } else if(data.type === 'Void'){
-      bannerText = "🌌 Voidイベント発動中";
-    }
-    
-    clearInterval(eventCountdownInterval);
-    eventCountdownInterval = setInterval(()=>{
-      const now = Date.now();
-      const timeLeft = data.endTime - now;
-      
-      if(timeLeft <= 0){
-        adminEventActive = false;
-        activeEventType = null;
-        banner.style.display = "none";
-        eventStatus.innerText = "イベント停止中";
-        clearInterval(eventCountdownInterval);
-        db.ref("globalEvent").set({active:false});
-        showToast("⏰ イベントが終了しました", "info");
-      } else {
-        const minutes = Math.floor(timeLeft / 60000);
-        const seconds = Math.floor((timeLeft % 60000) / 1000);
-        document.getElementById("adminEventTime").innerText = 
-          minutes.toString().padStart(2,"0") + ":" + 
-          seconds.toString().padStart(2,"0");
-        
-        banner.innerHTML = bannerText + "<br>⏳ 残り時間: " + 
-          minutes.toString().padStart(2,"0") + ":" + 
-          seconds.toString().padStart(2,"0");
-      }
-    }, 1000);
-    
-  } else {
-    adminEventActive = false;
-    activeEventType = null;
-    banner.style.display = "none";
-    eventStatus.innerText = "イベント停止中";
-    clearInterval(eventCountdownInterval);
-  }
-});
-
 function startAdminEvent(){
   if(!isAdmin) return;
 
