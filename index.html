@@ -684,7 +684,6 @@ if(!playerId){
 let usedCodes = JSON.parse(localStorage.getItem("usedCodes")||"[]");
 let selectedMyChar = null, currentTradeTab = "offer", dialogCallback = null;
 let selectedForFusion = [];
-let eventCountdownInterval = null;
 function sendGlobalNotice(){
   if(!isAdmin) return;
 
