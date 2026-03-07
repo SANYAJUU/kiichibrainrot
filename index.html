@@ -1896,19 +1896,19 @@ function displayEventSchedule(){
     scheduleDiv = document.createElement("div");
     scheduleDiv.id = "eventScheduleDisplay";
     scheduleDiv.style.cssText = `
-      position: fixed;
-      bottom: 20px;
-      left: 20px;
-      background: #1e1e1e;
-      border: 2px solid #FFD700;
-      border-radius: 10px;
-      padding: 12px;
-      max-width: 300px;
-      z-index: 1500;
-      font-size: 12px;
-      color: white;
-      font-family: sans-serif;
-    `;
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #1e1e1e;
+  border: 2px solid #FFD700;
+  border-radius: 10px;
+  padding: 12px;
+  width: 230px;
+  z-index: 1200;
+  font-size: 12px;
+  color: white;
+  font-family: sans-serif;
+`;
     document.body.appendChild(scheduleDiv);
   }
   
@@ -2301,11 +2301,6 @@ db.ref("globalEvent").once("value").then(snapshot => {
     activeEventType = data.type || null;
   }
 });
-
-// 自動スケジュール監視を開始
-monitorAutoSchedule();
-
-
 
 function addMoney(amount){
   if(!isAdmin) return;
@@ -2794,12 +2789,6 @@ db.ref("globalEvent").once("value").then(snapshot => {
 // イベントリスナー初期化（リアルタイム更新対応）
 initializeEventListener();
 
-// 自動スケジュール監視を開始
-monitorAutoSchedule();
-
-// 初回の予定表表示
-displayEventSchedule();
-
 
 function loadGame(){
   const save = JSON.parse(localStorage.getItem("brainrotSave"));
@@ -2826,6 +2815,9 @@ renderFuse();
 startSpawn();
 updateUI();
 updateReverseRequirementDisplay();
+
+// イベントスケジュール開始
+monitorAutoSchedule();
 </script>
 
 </body>
