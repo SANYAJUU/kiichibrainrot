@@ -1662,103 +1662,285 @@ function updateReverseRequirementDisplay(){
 }
 
 // ========== グローバル変数 ==========
-let activeEventType = null; // 'Admin', 'Toxic', 'Shadow', 'Void', null
+let activeEventType = null;
 let adminEventActive = false;
 let globalLuckMultiplier = 1;
 let isAdmin = false;
 let eventCountdownInterval = null;
 
-// ========== 元の管理者イベント開始関数 ==========
-function startAdminEvent(){
-  if(!isAdmin) return;
+// ========== イベントスケジュール定義 ==========
+const eventSchedule = [
+  { type: 'Toxic', startMinute: 0, intervalHours: 2 },
+  { type: 'Void', startMinute: 40, intervalHours: 3 },
+  { type: 'Shadow', startMinute: 20, intervalHours: 1 }
+];
 
-  const endTime = Date.now() + (20 * 60 * 1000); // 20分後
+const eventDuration = 20 * 60 * 1000; // 20分（ミリ秒）
 
-  // ✅ Firebaseに保存
-  db.ref("globalEvent").set({
-    active: true,
-    type: 'Admin',
-    startTime: Date.now(),
-    endTime: endTime,
-    startedBy: playerId
+// ========== グローバルイベント監視（リアルタイム更新 - 常時更新） ==========
+function initializeEventListener(){
+  db.ref("globalEvent").on("value", snapshot => {
+    const data = snapshot.val();
+    
+    if(data && data.active){
+      adminEventActive = true;
+      activeEventType = data.type || null;
+      
+      // バナー更新
+      updateEventBanner(data);
+      
+      // カウントダウン更新
+      updateEventCountdown(data);
+      
+      // イベント状態表示更新
+      updateEventStatusDisplay();
+      
+    } else {
+      adminEventActive = false;
+      activeEventType = null;
+      clearInterval(eventCountdownInterval);
+      hideEventBanner();
+      updateEventStatusDisplay();
+    }
   });
-
-  activeEventType = 'Admin';
-  adminEventActive = true;
-  globalLuckMultiplier = 67;
-
-  showToast("🎉 管理者イベント開始！", "success");
 }
 
-// ========== 特殊イベント開始関数 ==========
-function startSpecialEvent(eventType){
-  if(!isAdmin) return;
-
-  const endTime = Date.now() + (20 * 60 * 1000); // 20分
-
-  db.ref("globalEvent").set({
-    active: true,
-    type: eventType,
-    startTime: Date.now(),
-    endTime: endTime,
-    startedBy: playerId
-  });
-
-  activeEventType = eventType;
-  adminEventActive = true;
+// ========== イベントバナー更新関数 ==========
+function updateEventBanner(data){
+  let bannerText = "👑 管理者イベント発動中";
+  let bannerColor = "gold";
   
-  // 特殊イベントではグローバルラック倍率は使わない（属性と秘密の確率を直接制御）
-  globalLuckMultiplier = 1;
-
-  showToast(`🎉 ${eventType}イベント開始！`, "success");
-}
-
-// ========== イベント終了関数 ==========
-function stopAdminEvent(){
-  if(!isAdmin) return;
-
-  db.ref("globalEvent").set({
-    active: false
-  });
-
-  activeEventType = null;
-  adminEventActive = false;
-  globalLuckMultiplier = 1;
-
-  clearInterval(eventCountdownInterval);
-  document.getElementById("adminEventBanner").style.display = "none";
-
-  showToast("⏹️ イベント終了", "info");
-}
-
-// ========== getRandomRarity() の修正 ==========
-function getRandomRarity(){
-  const adjusted = rarities.map(r=>{
-    let chance = r.chance;
-
-    // 管理者イベント時：SECRET確率を67倍
-    if(adminEventActive && activeEventType === 'Admin' && r.name === "SECRET"){
-      chance *= 67;
-    }
-    // 特殊イベント時：SECRET確率を10倍
-    else if(adminEventActive && (activeEventType === 'Toxic' || activeEventType === 'Shadow' || activeEventType === 'Void') && r.name === "SECRET"){
-      chance *= 10;
-    }
-
-    return {...r, chance};
-  });
-
-  const total = adjusted.reduce((s,r)=>s+r.chance,0);
-  const rand = Math.random()*total;
-  let sum=0;
-  for(let r of adjusted){
-    sum+=r.chance;
-    if(rand<=sum) return r;
+  switch(data.type){
+    case 'Toxic':
+      bannerText = "☢️ Toxicイベント発動中";
+      bannerColor = "#00ff00";
+      break;
+    case 'Shadow':
+      bannerText = "🌑 Shadowイベント発動中";
+      bannerColor = "#FF69B4";
+      break;
+    case 'Void':
+      bannerText = "🌌 Voidイベント発動中";
+      bannerColor = "#00ffff";
+      break;
   }
-  return adjusted[adjusted.length-1];
+  
+  // HTMLに追加されていないなら作成
+  let banner = document.getElementById("adminEventBanner");
+  if(!banner){
+    banner = document.createElement("div");
+    banner.id = "adminEventBanner";
+    banner.style.cssText = `
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: linear-gradient(45deg, ${bannerColor}, ${bannerColor}aa);
+      color: white;
+      padding: 20px 40px;
+      border-radius: 15px;
+      font-size: 24px;
+      font-weight: bold;
+      z-index: 2000;
+      border: 3px solid ${bannerColor};
+      box-shadow: 0 0 30px ${bannerColor};
+      display: ${isAdmin ? 'block' : 'none'};
+    `;
+    document.body.appendChild(banner);
+  }
+  
+  banner.innerHTML = bannerText + `<div style="font-size:14px; margin-top:10px;">残り: <span id="adminEventTime">--:--</span></div>`;
+  if(isAdmin) banner.style.display = "block";
 }
 
-// ========== spawnWalker() の修正 ==========
+function hideEventBanner(){
+  const banner = document.getElementById("adminEventBanner");
+  if(banner) banner.style.display = "none";
+}
+
+// ========== イベントカウントダウン更新関数 ==========
+function updateEventCountdown(data){
+  clearInterval(eventCountdownInterval);
+  
+  eventCountdownInterval = setInterval(() => {
+    const now = Date.now();
+    const timeLeft = data.endTime - now;
+    
+    if(timeLeft <= 0){
+      adminEventActive = false;
+      activeEventType = null;
+      db.ref("globalEvent").set({active: false});
+      showToast("⏰ イベントが終了しました", "info");
+      hideEventBanner();
+      updateEventStatusDisplay();
+    } else {
+      const minutes = Math.floor(timeLeft / 60000);
+      const seconds = Math.floor((timeLeft % 60000) / 1000);
+      
+      const timeStr = minutes.toString().padStart(2, "0") + ":" + 
+                      seconds.toString().padStart(2, "0");
+      
+      document.getElementById("timeRemaining").textContent = timeStr;
+      
+      if(isAdmin){
+        const adminEventTime = document.getElementById("adminEventTime");
+        if(adminEventTime) adminEventTime.textContent = timeStr;
+      }
+      
+      updateEventStatusDisplay();
+    }
+  }, 1000);
+}
+
+// ========== イベント状態表示更新関数 ==========
+function updateEventStatusDisplay(){
+  const statusDiv = document.getElementById("eventStatusDisplay");
+  const eventTypeSpan = document.getElementById("currentEventType");
+  
+  if(adminEventActive && activeEventType){
+    statusDiv.style.display = "block";
+    
+    let eventLabel = "";
+    let eventColor = "#FFD700";
+    
+    switch(activeEventType){
+      case 'Admin':
+        eventLabel = "👑 管理者イベント";
+        eventColor = "#FFD700";
+        break;
+      case 'Toxic':
+        eventLabel = "☢️ Toxicイベント";
+        eventColor = "#00ff00";
+        break;
+      case 'Shadow':
+        eventLabel = "🌑 Shadowイベント";
+        eventColor = "#FF69B4";
+        break;
+      case 'Void':
+        eventLabel = "🌌 Voidイベント";
+        eventColor = "#00ffff";
+        break;
+    }
+    
+    eventTypeSpan.textContent = eventLabel;
+    eventTypeSpan.style.color = eventColor;
+  } else {
+    statusDiv.style.display = "none";
+  }
+}
+
+// ========== 次のイベント時刻を計算する関数 ==========
+function getNextEventTime(type, startMinute, intervalHours) {
+  const now = new Date();
+  const currentHours = now.getHours();
+  const currentMinutes = now.getMinutes();
+  const currentTotalMinutes = currentHours * 60 + currentMinutes;
+  
+  const todayEventTimes = [];
+  for(let h = 0; h < 24; h += intervalHours) {
+    todayEventTimes.push(h * 60 + startMinute);
+  }
+  
+  for(let eventMinutes of todayEventTimes) {
+    if(eventMinutes > currentTotalMinutes) {
+      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
+                     Math.floor(eventMinutes / 60), eventMinutes % 60, 0, 0);
+    }
+  }
+  
+  const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+  return new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(),
+                 Math.floor(startMinute / 60), startMinute % 60, 0, 0);
+}
+
+// ========== イベント予定表を計算する関数 ==========
+function getUpcomingEvents(hoursAhead = 12){
+  const now = new Date();
+  const upcoming = [];
+  
+  eventSchedule.forEach(schedule => {
+    const currentHours = now.getHours();
+    const currentMinutes = now.getMinutes();
+    const currentTotalMinutes = currentHours * 60 + currentMinutes;
+    
+    // 本日のイベント時刻を全て計算
+    for(let h = 0; h < 24; h += schedule.intervalHours) {
+      const eventMinutes = h * 60 + schedule.startMinute;
+      
+      if(eventMinutes > currentTotalMinutes) {
+        const eventTime = new Date(now.getFullYear(), now.getMonth(), now.getDate(),
+                                   Math.floor(eventMinutes / 60), eventMinutes % 60, 0, 0);
+        
+        if(eventTime - now <= hoursAhead * 60 * 60 * 1000){
+          upcoming.push({
+            type: schedule.type,
+            time: eventTime,
+            startMinute: schedule.startMinute,
+            intervalHours: schedule.intervalHours
+          });
+        }
+      }
+    }
+  });
+  
+  // 時間でソート
+  upcoming.sort((a, b) => a.time - b.time);
+  
+  return upcoming;
+}
+
+// ========== イベント予定表UI表示関数（新規追加 - 全ユーザーに表示） ==========
+function displayEventSchedule(){
+  let scheduleDiv = document.getElementById("eventScheduleDisplay");
+  
+  if(!scheduleDiv){
+    scheduleDiv = document.createElement("div");
+    scheduleDiv.id = "eventScheduleDisplay";
+    scheduleDiv.style.cssText = `
+      position: fixed;
+      bottom: 20px;
+      left: 20px;
+      background: #1e1e1e;
+      border: 2px solid #FFD700;
+      border-radius: 10px;
+      padding: 12px;
+      max-width: 300px;
+      z-index: 1500;
+      font-size: 12px;
+      color: white;
+      font-family: sans-serif;
+    `;
+    document.body.appendChild(scheduleDiv);
+  }
+  
+  const upcoming = getUpcomingEvents(12);
+  
+  let html = '<div style="font-weight:bold; color:#FFD700; margin-bottom:8px;">📅 次のイベント</div>';
+  
+  if(upcoming.length === 0){
+    html += '<div style="color:#aaa;">今後12時間内にイベントはありません</div>';
+  } else {
+    upcoming.slice(0, 5).forEach(event => {
+      const hours = event.time.getHours().toString().padStart(2, '0');
+      const mins = event.time.getMinutes().toString().padStart(2, '0');
+      
+      let emoji = '';
+      switch(event.type){
+        case 'Toxic': emoji = '☢️'; break;
+        case 'Shadow': emoji = '🌑'; break;
+        case 'Void': emoji = '🌌'; break;
+      }
+      
+      html += `<div style="margin:5px 0; padding:5px; background:#333; border-radius:5px;">
+        ${emoji} ${event.type} - ${hours}:${mins}
+      </div>`;
+    });
+  }
+  
+  scheduleDiv.innerHTML = html;
+}
+
+// ========== spawnWalker() の修正（属性イベント時の確率を1/2に変更） ==========
 function spawnWalker(){
   let baseData = getRandomRarity();
   let data = {...baseData};
@@ -1768,36 +1950,55 @@ function spawnWalker(){
     data = {name:"SECRET", character: pick.character, rate: pick.rate, color:"black"};
   }
 
-  let totalChance = attributes.reduce((s,a)=>s+a.chance,0);
-  let rand = Math.random()*totalChance;
-  let sum = 0;
+  // ✅ 修正：属性イベント時の確率を1/2に変更
+  let selectedAttr = null;
   
-  for(let attr of attributes){ 
-    sum += attr.chance;
-    
-    // ✅ 特殊イベント時：指定された属性の確率を100倍
-    let adjustedChance = attr.chance;
-    if(adminEventActive && activeEventType === 'Toxic' && attr.name === 'Toxic'){
-      adjustedChance *= 100;
-    } else if(adminEventActive && activeEventType === 'Shadow' && attr.name === 'Shadow'){
-      adjustedChance *= 100;
-    } else if(adminEventActive && activeEventType === 'Void' && attr.name === 'Void'){
-      adjustedChance *= 100;
+  if(adminEventActive && (activeEventType === 'Toxic' || activeEventType === 'Shadow' || activeEventType === 'Void')){
+    // イベント属性を1/2の確率で選択
+    if(Math.random() < 0.5){
+      // イベント属性を選択
+      selectedAttr = attributes.find(a => a.name === activeEventType);
+    } else {
+      // ランダムに属性を選択（イベント属性を除外）
+      const otherAttributes = attributes.filter(a => a.name !== activeEventType);
+      const totalChance = otherAttributes.reduce((s,a) => s + a.chance, 0);
+      let rand = Math.random() * totalChance;
+      let sum = 0;
+      
+      for(let attr of otherAttributes){
+        sum += attr.chance;
+        if(rand <= sum){
+          selectedAttr = attr;
+          break;
+        }
+      }
     }
+  } else {
+    // 通常の属性選択
+    const totalChance = attributes.reduce((s,a) => s + a.chance, 0);
+    let rand = Math.random() * totalChance;
+    let sum = 0;
     
-    // 累積確率を再計算
-    if(rand <= sum){ 
-      data.attribute = attr; 
-      break; 
+    for(let attr of attributes){
+      sum += attr.chance;
+      if(rand <= sum){
+        selectedAttr = attr;
+        break;
+      }
     }
   }
+  
+  data.attribute = selectedAttr;
   
   data.mutations = [];
   if(adminEventActive){
-    mutations.forEach(m=>{ if(Math.random()<0.15) data.mutations.push(m); });
+    mutations.forEach(m => { 
+      if(Math.random() < 0.15) data.mutations.push(m); 
+    });
   }
-  let totalMultiplier = data.attribute.multiplier;
-  data.mutations.forEach(m=>totalMultiplier += m.bonus);
+  
+  let totalMultiplier = (selectedAttr?.multiplier || 1);
+  data.mutations.forEach(m => totalMultiplier += (m.bonus || 0));
   data.baseRate = data.rate;
   data.rate = Math.floor(data.baseRate * totalMultiplier);
   data.reverse = 0;
@@ -1839,42 +2040,133 @@ function spawnWalker(){
   };
 }
 
-// ========== イベント状態表示更新関数 ==========
-function updateEventStatusDisplay(){
-  const statusDiv = document.getElementById("eventStatusDisplay");
-  const eventTypeSpan = document.getElementById("currentEventType");
-  const timeRemainingSpan = document.getElementById("timeRemaining");
+// ========== スケジュール監視関数 ==========
+function monitorAutoSchedule() {
+  // 毎秒チェック
+  setInterval(() => {
+    const now = new Date();
+    
+    eventSchedule.forEach(schedule => {
+      const nextEventTime = getNextEventTime(schedule.type, schedule.startMinute, schedule.intervalHours);
+      const timeUntilEvent = nextEventTime.getTime() - now.getTime();
+      
+      // イベント開始時刻から±30秒以内ならイベント開始
+      if(timeUntilEvent > -30000 && timeUntilEvent <= 1000) {
+        startAutoEvent(schedule.type);
+      }
+    });
+    
+    // イベント予定表の更新（常時更新）
+    displayEventSchedule();
+    
+  }, 1000);
+}
+
+// ========== 自動イベント開始関数 ==========
+function startAutoEvent(eventType) {
+  // 既にイベント中なら開始しない
+  if(adminEventActive && activeEventType === eventType) return;
   
-  if(adminEventActive && activeEventType){
-    statusDiv.style.display = "block";
-    
-    let eventLabel = "";
-    let eventColor = "#FFD700";
-    
-    switch(activeEventType){
-      case 'Admin':
-        eventLabel = "👑 管理者イベント";
-        eventColor = "#FFD700";
-        break;
-      case 'Toxic':
-        eventLabel = "☢️ Toxicイベント";
-        eventColor = "#00ff00";
-        break;
-      case 'Shadow':
-        eventLabel = "🌑 Shadowイベント";
-        eventColor = "#FF69B4";
-        break;
-      case 'Void':
-        eventLabel = "🌌 Voidイベント";
-        eventColor = "#00ffff";
-        break;
+  const endTime = Date.now() + eventDuration;
+  
+  db.ref("globalEvent").set({
+    active: true,
+    type: eventType,
+    startTime: Date.now(),
+    endTime: endTime,
+    isAutoEvent: true
+  });
+  
+  activeEventType = eventType;
+  adminEventActive = true;
+  
+  console.log(`[自動] ${eventType}イベント開始`);
+}
+
+// ========== 管理者イベント開始（修正済み） ==========
+function startAdminEvent(){
+  if(!isAdmin) return;
+
+  const endTime = Date.now() + (20 * 60 * 1000); // 20分後
+
+  db.ref("globalEvent").set({
+    active: true,
+    type: 'Admin',
+    startTime: Date.now(),
+    endTime: endTime,
+    startedBy: playerId
+  });
+
+  activeEventType = 'Admin';
+  adminEventActive = true;
+  globalLuckMultiplier = 67;
+
+  showToast("🎉 管理者イベント開始！", "success");
+}
+
+// ========== 特殊イベント開始関数（修正済み） ==========
+function startSpecialEvent(eventType){
+  if(!isAdmin) return;
+
+  const endTime = Date.now() + (20 * 60 * 1000); // 20分
+
+  db.ref("globalEvent").set({
+    active: true,
+    type: eventType,
+    startTime: Date.now(),
+    endTime: endTime,
+    isAutoEvent: false,
+    startedBy: playerId
+  });
+
+  activeEventType = eventType;
+  adminEventActive = true;
+
+  showToast(`🎉 ${eventType}イベント開始！`, "success");
+}
+
+// ========== イベント終了関数（修正済み） ==========
+function stopAdminEvent(){
+  if(!isAdmin) return;
+
+  db.ref("globalEvent").set({
+    active: false
+  });
+
+  activeEventType = null;
+  adminEventActive = false;
+  globalLuckMultiplier = 1;
+
+  clearInterval(eventCountdownInterval);
+  hideEventBanner();
+
+  showToast("⏹️ イベント終了", "info");
+}
+// ========== getRandomRarity() の修正 ==========
+function getRandomRarity(){
+  const adjusted = rarities.map(r=>{
+    let chance = r.chance;
+
+    // 管理者イベント時：SECRET確率を67倍
+    if(adminEventActive && activeEventType === 'Admin' && r.name === "SECRET"){
+      chance *= 67;
     }
-    
-    eventTypeSpan.textContent = eventLabel;
-    eventTypeSpan.style.color = eventColor;
-  } else {
-    statusDiv.style.display = "none";
+    // 特殊イベント時：SECRET確率を10倍
+    else if(adminEventActive && (activeEventType === 'Toxic' || activeEventType === 'Shadow' || activeEventType === 'Void') && r.name === "SECRET"){
+      chance *= 10;
+    }
+
+    return {...r, chance};
+  });
+
+  const total = adjusted.reduce((s,r)=>s+r.chance,0);
+  const rand = Math.random()*total;
+  let sum=0;
+  for(let r of adjusted){
+    sum+=r.chance;
+    if(rand<=sum) return r;
   }
+  return adjusted[adjusted.length-1];
 }
 
 // ========== グローバルイベント監視 ==========
@@ -1952,89 +2244,8 @@ db.ref("globalEvent").on("value", snapshot=>{
     updateEventStatusDisplay();
   }
 });
-
-// ========== イベントスケジュール定義 ==========
-const eventSchedule = [
-  // Toxicイベント：0:00~0:20, 2:00~2:20, 4:00~4:20, 6:00~6:20, ...
-  { type: 'Toxic', startMinute: 0, intervalHours: 2 },
-  // Voidイベント：0:40~1:00, 3:40~4:00, 6:40~7:00, ...
-  { type: 'Void', startMinute: 40, intervalHours: 3 },
-  // Shadowイベント：1:20~1:40, 2:20~2:40, 3:20~3:40, 4:20~4:40, ...
-  { type: 'Shadow', startMinute: 20, intervalHours: 1 }
-];
-
 const eventDuration = 20 * 60 * 1000; // 20分（ミリ秒）
 
-// ========== 次のイベント時刻を計算する関数 ==========
-function getNextEventTime(type, startMinute, intervalHours) {
-  const now = new Date();
-  const currentHours = now.getHours();
-  const currentMinutes = now.getMinutes();
-  const currentTotalMinutes = currentHours * 60 + currentMinutes;
-  
-  let nextEventHours;
-  
-  // 今日中のイベント時刻を全て計算
-  const todayEventTimes = [];
-  for(let h = 0; h < 24; h += intervalHours) {
-    todayEventTimes.push(h * 60 + startMinute);
-  }
-  
-  // 次のイベント時刻を探す
-  for(let eventMinutes of todayEventTimes) {
-    if(eventMinutes > currentTotalMinutes) {
-      return new Date(now.getFullYear(), now.getMonth(), now.getDate(), 
-                     Math.floor(eventMinutes / 60), eventMinutes % 60, 0, 0);
-    }
-  }
-  
-  // 今日中にないなら、明日の最初のイベント
-  const nextDay = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-  return new Date(nextDay.getFullYear(), nextDay.getMonth(), nextDay.getDate(),
-                 Math.floor(startMinute / 60), startMinute % 60, 0, 0);
-}
-
-// ========== スケジュール監視関数 ==========
-function monitorAutoSchedule() {
-  // 毎分チェック
-  setInterval(() => {
-    const now = new Date();
-    
-    eventSchedule.forEach(schedule => {
-      const nextEventTime = getNextEventTime(schedule.type, schedule.startMinute, schedule.intervalHours);
-      const timeUntilEvent = nextEventTime.getTime() - now.getTime();
-      
-      // イベント開始時刻から±30秒以内ならイベント開始
-      if(timeUntilEvent > -30000 && timeUntilEvent <= 1000) {
-        startAutoEvent(schedule.type);
-      }
-    });
-    
-    // イベント終了チェック
-    checkEventEnd();
-  }, 1000); // 1秒ごとにチェック
-}
-
-// ========== 自動イベント開始関数 ==========
-function startAutoEvent(eventType) {
-  // 既にイベント中なら開始しない
-  if(adminEventActive && activeEventType === eventType) return;
-  
-  const endTime = Date.now() + eventDuration;
-  
-  db.ref("globalEvent").set({
-    active: true,
-    type: eventType,
-    startTime: Date.now(),
-    endTime: endTime,
-    isAutoEvent: true // 自動イベントフラグ
-  });
-  
-  activeEventType = eventType;
-  adminEventActive = true;
-  
-  console.log(`[自動] ${eventType}イベント開始`);
-}
 
 // ========== イベント終了チェック関数 ==========
 function checkEventEnd() {
@@ -2570,6 +2781,26 @@ function saveGame(){
     base
   }));
 }
+
+// ========== ゲーム初期化（既存のコードの最後に追加） ==========
+// 現在のイベント状態をロード + リアルタイムリスナー開始
+db.ref("globalEvent").once("value").then(snapshot => {
+  const data = snapshot.val();
+  if(data && data.active) {
+    adminEventActive = true;
+    activeEventType = data.type || null;
+  }
+});
+
+// イベントリスナー初期化（リアルタイム更新対応）
+initializeEventListener();
+
+// 自動スケジュール監視を開始
+monitorAutoSchedule();
+
+// 初回の予定表表示
+displayEventSchedule();
+
 
 function loadGame(){
   const save = JSON.parse(localStorage.getItem("brainrotSave"));
