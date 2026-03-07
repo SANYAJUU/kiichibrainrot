@@ -2718,7 +2718,36 @@ db.ref("globalEvent").once("value").then(snapshot => {
 
 // イベントリスナー初期化（リアルタイム更新対応）
 initializeEventListener();
+function updateEventBanner(type) {
 
+  const banner = document.getElementById("adminEventBanner");
+  if(!banner) return;
+
+  let bannerText = "👑 管理者イベント発動中";
+  let bannerColor = "gold";
+
+  switch(type){
+    case "Toxic":
+      bannerText = "☢️ Toxicイベント発動中";
+      bannerColor = "#00ff00";
+      break;
+
+    case "Shadow":
+      bannerText = "🌑 Shadowイベント発動中";
+      bannerColor = "#FF69B4";
+      break;
+
+    case "Void":
+      bannerText = "🌌 Voidイベント発動中";
+      bannerColor = "#00ffff";
+      break;
+  }
+
+  banner.innerText = bannerText;
+  banner.style.background = `linear-gradient(45deg, ${bannerColor}, ${bannerColor}aa)`;
+  banner.style.display = "block";
+
+}
 
 function loadGame(){
   const save = JSON.parse(localStorage.getItem("brainrotSave"));
