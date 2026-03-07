@@ -2715,9 +2715,6 @@ db.ref("globalEvent").once("value").then(snapshot => {
     activeEventType = data.type || null;
   }
 });
-
-// イベントリスナー初期化（リアルタイム更新対応）
-initializeEventListener();
 function updateEventBanner(type) {
 
   const banner = document.getElementById("adminEventBanner");
@@ -2748,6 +2745,9 @@ function updateEventBanner(type) {
   banner.style.display = "block";
 
 }
+// イベントリスナー初期化（リアルタイム更新対応）
+initializeEventListener();
+
 
 function loadGame(){
   const save = JSON.parse(localStorage.getItem("brainrotSave"));
