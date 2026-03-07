@@ -2669,19 +2669,23 @@ document.addEventListener("mousemove", (e)=>{
 document.addEventListener("mouseup", ()=>{ 
   isDragging = false; 
 });
-const adminCodeInput = document.getElementById("codeInput");
+window.addEventListener("load", () => {
 
-// 自動フォーカス
-window.addEventListener("load", ()=>{
+  const adminCodeInput = document.getElementById("codeInput");
+
+  if(!codeInput) return;
+
+  // 自動フォーカス
   codeInput.focus();
-});
 
-// Enterで送信
-codeInput.addEventListener("keydown", (e)=>{
-  if(e.key === "Enter"){
-    e.preventDefault();
-    redeemCode(); // あなたのコード送信関数
-  }
+  // Enter送信
+  codeInput.addEventListener("keydown", (e)=>{
+    if(e.key === "Enter"){
+      e.preventDefault();
+      redeemCode(); // あなたのコード送信関数
+    }
+  });
+
 });
 
 // 収益加算（毎秒）
