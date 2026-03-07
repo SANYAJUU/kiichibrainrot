@@ -1676,32 +1676,92 @@ const eventSchedule = [
 ];
 
 
-// ========== グローバルイベント監視（リアルタイム更新 - 常時更新） ==========
+// ========= イベント監視 =========
+
 function initializeEventListener(){
+
   db.ref("globalEvent").on("value", snapshot => {
+
     const data = snapshot.val();
-    
+    const banner = document.getElementById("adminEventBanner");
+
     if(data && data.active){
+
       adminEventActive = true;
       activeEventType = data.type || null;
-      
-      // バナー更新
-      updateEventBanner(data);
-      
-      // カウントダウン更新
-      updateEventCountdown(data);
-      
-      // イベント状態表示更新
+
+      updateEventBanner(activeEventType);
+
+      if(banner){
+        banner.style.display = "block";
+      }
+
+      // カウントダウン
+      clearInterval(eventCountdownInterval);
+
+      eventCountdownInterval = setInterval(()=>{
+
+        const now = Date.now();
+        const timeLeft = data.endTime - now;
+
+        if(timeLeft <= 0){
+
+          adminEventActive = false;
+          activeEventType = null;
+
+          if(banner){
+            banner.style.display = "none";
+          }
+
+          clearInterval(eventCountdownInterval);
+
+          db.ref("globalEvent").set({active:false});
+
+          showToast("⏰ イベントが終了しました","info");
+
+          updateEventStatusDisplay();
+          updateEventScheduleDisplay();
+
+        }else{
+
+          const minutes = Math.floor(timeLeft / 60000);
+          const seconds = Math.floor((timeLeft % 60000) / 1000);
+
+          const timeText =
+            minutes.toString().padStart(2,"0") + ":" +
+            seconds.toString().padStart(2,"0");
+
+          const t1 = document.getElementById("timeRemaining");
+          const t2 = document.getElementById("adminEventTime");
+
+          if(t1) t1.textContent = timeText;
+          if(t2) t2.textContent = timeText;
+
+        }
+
+      },1000);
+
       updateEventStatusDisplay();
-      
-    } else {
+      updateEventScheduleDisplay();
+
+    }else{
+
       adminEventActive = false;
       activeEventType = null;
+
+      if(banner){
+        banner.style.display = "none";
+      }
+
       clearInterval(eventCountdownInterval);
-      hideEventBanner();
+
       updateEventStatusDisplay();
+      updateEventScheduleDisplay();
+
     }
+
   });
+
 }
 
 
